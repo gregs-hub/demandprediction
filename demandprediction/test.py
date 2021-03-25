@@ -12,14 +12,10 @@ dformat = '%Y-%m-%d %H:%M:%S'
 
 ## DB CONFIGURATION NAMES
 config = utils.dbConfig(dbflav, dbpath)
-hstsens = config['INIDFLDNAME']
-hstdate = config['INDATETIMEFLDNAME']
-hstvalue = config['INVALUEFLDNAME']
-hstqual = config['INQUALITYFLDNAME']
-prdsens = config['DMIDFLDNAME']
-prddate = config['DMDATETIMEFLDNAME']
-prdvalue = config['DMVALUEFLDNAME']
-prdqual = config['DMQUALITYFLDNAME']
+colsens = config['INIDFLDNAME']
+coldate = config['INDATETIMEFLDNAME']
+colvalue = config['INVALUEFLDNAME']
+colqual = config['INQUALITYFLDNAME']
 colID = config['AUTOKEYID']
 
 ## DB DEMAND PARAMETERS
@@ -48,19 +44,19 @@ for index, row in df_wd.iterrows():
     param8 = row['PARAM8']
 
     ## Delete previous forecast from sql
-    utils.dbDelete(dbflav, dbpath, sensor, tabdemand, prdsens)
+    utils.dbDelete(dbflav, dbpath, sensor, tabdemand, colsens)
     
     ## Get last historical date
-    ldate = utils.lastDate(dbflav, dbpath, sensor, tabsensor, hstdate, hstsens)
+    ldate = utils.lastDate(dbflav, dbpath, sensor, tabsensor, coldate, colsens)
 
     ## Compute water demand prediction dates
     start_train, stop_train, start_pred, stop_pred = utils.datesMgt(ldate, rstime, offtime, leadtime, histtime, dformat)
 
     ## Data read
-    df_in = utils.dbRead(dbflav, dbpath, sensor, tabsensor, colID, hstdate, hstsens)
+    df_in = utils.dbRead(dbflav, dbpath, sensor, tabsensor, colID, coldate, colsens)
 
     ## Pre-process
-    X_train, y_train, df_X, df_y, X_pred = utils.preProcess(df_in, hstdate, colID, hstsens, hstqual, hstvalue, rstime, offtime, start_train, stop_train, start_pred, stop_pred)
+    X_train, y_train, df_X, df_y, X_pred = utils.preProcess(df_in, coldate, colID, colsens, colqual, colvalue, rstime, offtime, start_train, stop_train, start_pred, stop_pred)
 
     ## Demand computation
     if row['PREDICTTYPE'] == 'HOLTWINTERS': # Need historical data
@@ -83,7 +79,7 @@ for index, row in df_wd.iterrows():
         fcst = np.mean(fcst,axis=1)
 
     ## Post-process
-    df_out = utils.postProcess(fcst, df_X, sensor, prddate, colID, prdsens, prdqual, prdvalue, start_pred, stop_pred)
+    df_out = utils.postProcess(fcst, df_X, sensor, coldate, colID, colsens, colqual, colvalue, start_pred, stop_pred)
 
     ## Write new forecast to sql
     utils.dbWrite(df_out, dbflav, dbpath, sensor, tabdemand)

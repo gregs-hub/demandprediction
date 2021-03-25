@@ -5,14 +5,14 @@ import datetime
 from datetime import datetime, timedelta
 import sqlite3
 
-def dbRead(dbflav, dbpath, sensor, tabsensor, colID, hstdate, hstsens):
+def dbRead(dbflav, dbpath, sensor, tabsensor, colID, coldate, colsens):
     ### READ
     if dbflav == 'sqlite':
         # Read sqlite query results into a pandas DataFrame
         con = sqlite3.connect(dbpath)
-        print("SELECT * FROM "+tabsensor+" WHERE "+hstsens+"='"+sensor+"' ORDER BY "+hstdate+" ASC, "+colID+" ASC", end='')
+        print("SELECT * FROM "+tabsensor+" WHERE "+colsens+"='"+sensor+"' ORDER BY "+coldate+" ASC, "+colID+" ASC", end='')
         try:
-            df = pd.read_sql_query("SELECT * FROM "+tabsensor+" WHERE "+hstsens+"='"+sensor+"' ORDER BY "+hstdate+" ASC, "+colID+" ASC", con)
+            df = pd.read_sql_query("SELECT * FROM "+tabsensor+" WHERE "+colsens+"='"+sensor+"' ORDER BY "+coldate+" ASC, "+colID+" ASC", con)
             con.execute('REINDEX '+tabsensor)
             con.commit()
             con.close()
@@ -44,14 +44,14 @@ def dbWrite(df, dbflav, dbpath, sensor, tabdemand):
     else:
         pass
 
-def dbDelete(dbflav, dbpath, sensor, tabdemand, prdsens):
+def dbDelete(dbflav, dbpath, sensor, tabdemand, colsens):
     ### DELETE
     if dbflav == 'sqlite':
         # Delete sqlite rows based on a condition
         con = sqlite3.connect(dbpath)
-        print("DELETE FROM "+tabdemand+" WHERE "+prdsens+"=='"+sensor+"'", end='')
+        print("DELETE FROM "+tabdemand+" WHERE "+colsens+"=='"+sensor+"'", end='')
         try:
-            con.execute("DELETE FROM "+tabdemand+" WHERE "+prdsens+"=='"+sensor+"'")
+            con.execute("DELETE FROM "+tabdemand+" WHERE "+colsens+"=='"+sensor+"'")
             con.execute('REINDEX '+tabdemand)
             con.commit()
             con.close()
@@ -105,15 +105,15 @@ def dbParam(dbflav, dbpath):
     else:
         pass
 
-def lastDate(dbflav, dbpath, sensor, tabsensor, hstdate, hstsens):
+def lastDate(dbflav, dbpath, sensor, tabsensor, coldate, colsens):
     ### READ LAST DATE FOR CURRENT SENSOR
     if dbflav == 'sqlite':
         # Read sqlite query results into a pandas DataFrame
         con = sqlite3.connect(dbpath)
-        print("SELECT * FROM "+tabsensor+" WHERE "+hstsens+"='"+sensor+"' ORDER BY "+hstdate+" DESC LIMIT 1", end='')
+        print("SELECT * FROM "+tabsensor+" WHERE "+colsens+"='"+sensor+"' ORDER BY "+coldate+" DESC LIMIT 1", end='')
         try:
-            df = pd.read_sql_query("SELECT * FROM "+tabsensor+" WHERE "+hstsens+"='"+sensor+"' ORDER BY "+hstdate+" DESC LIMIT 1", con)
-            ldate = df[hstdate][0]
+            df = pd.read_sql_query("SELECT * FROM "+tabsensor+" WHERE "+colsens+"='"+sensor+"' ORDER BY "+coldate+" DESC LIMIT 1", con)
+            ldate = df[coldate][0]
             con.commit()
             con.close()
             print('... done')
@@ -139,16 +139,16 @@ def datesMgt(ldate, rstime, offtime, leadtime, histtime, dformat):
     stop_pred = datetime.strftime(_roundto(rstime, lstdate+timedelta(minutes=leadtime+rstime)),dformat)
     return start_train, stop_train, start_pred, stop_pred
 
-def preProcess(df, hstdate, colID, hstsens, hstqual, hstvalue, rstime, offtime, start_train, stop_train, start_pred, stop_pred):
-    # Define hstdate as datetime index
-    df = df.set_index(pd.DatetimeIndex(df[hstdate])).drop(columns=hstdate)
-    # Drop unused columns : coldID, hstsens, hstqual
-    df.drop(columns=[colID,hstsens,hstqual], inplace=True)
+def preProcess(df, coldate, colID, colsens, colqual, colvalue, rstime, offtime, start_train, stop_train, start_pred, stop_pred):
+    # Define coldate as datetime index
+    df = df.set_index(pd.DatetimeIndex(df[coldate])).drop(columns=coldate)
+    # Drop unused columns : coldID, colsens, colqual
+    df.drop(columns=[colID,colsens,colqual], inplace=True)
     # Data filtering ### TODO
     df_mod = df
     df_mod.replace(0,np.nan,inplace=True)
-    df_mod[df_mod[hstvalue]>df_mod[hstvalue].quantile(0.999)] = np.nan
-    df_mod[df_mod[hstvalue]<df_mod[hstvalue].quantile(0.001)] = np.nan
+    df_mod[df_mod[colvalue]>df_mod[colvalue].quantile(0.999)] = np.nan
+    df_mod[df_mod[colvalue]<df_mod[colvalue].quantile(0.001)] = np.nan
     df_mod.dropna(inplace=True)
     # Data resampling ### TODO
     df_rs = df.resample(str(rstime)+'min').mean()
@@ -162,8 +162,8 @@ def preProcess(df, hstdate, colID, hstsens, hstqual, hstvalue, rstime, offtime, 
     df_rs['HR'] = df_rs.index.hour.astype(float)
     # df_rs['MN'] = df_rs.index.minute.astype(float)
     # Data formatting for water demand algorithms
-    df_X = df_rs.drop(hstvalue, axis=1)
-    df_y = df_rs[hstvalue]
+    df_X = df_rs.drop(colvalue, axis=1)
+    df_y = df_rs[colvalue]
     X = np.transpose(df_X.values)
     y = df_y.values
     y = y.reshape(1,len(y))
@@ -179,22 +179,22 @@ def preProcess(df, hstdate, colID, hstsens, hstqual, hstvalue, rstime, offtime, 
     y_train = np.squeeze(y_train, axis=0)
     return X_train, y_train, df_X, df_y, X_pred
 
-def postProcess(fcst, df_X, sensor, prddate, colID, prdsens, prdqual, prdvalue, start_pred, stop_pred):
+def postProcess(fcst, df_X, sensor, coldate, colID, colsens, colqual, colvalue, start_pred, stop_pred):
     steps = len(df_X.loc[start_pred:stop_pred].index)
     # Code int(9) is used to warn it's a predicted value
     # TODO post-process anomalies, for now only > 0
     fcst[fcst < 0] = 0
-    df_out = pd.DataFrame([[sensor]*steps, fcst, df_X.loc[start_pred:stop_pred].index, [9]*steps],[prdsens, prdvalue, prddate, prdqual]).transpose()
+    df_out = pd.DataFrame([[sensor]*steps, fcst, df_X.loc[start_pred:stop_pred].index, [9]*steps],[colsens, colvalue, coldate, colqual]).transpose()
     print(df_out)
     return df_out
 
 
 ## IN PROGRESS
 
-# df[hstqual] = int(9)
-# dbWrite(df, dbflav, dbpath, sensor, tabsensor, colID, hstdate, hstsens, hstqual)
+# df[colqual] = int(9)
+# dbWrite(df, dbflav, dbpath, sensor, tabsensor, colID, coldate, colsens, colqual)
 
-# dbDelete(dbflav, dbpath, sensor, tabsensor, hstsens, hstqual)
+# dbDelete(dbflav, dbpath, sensor, tabsensor, colsens, colqual)
 
 # # UdlRead('./dev/toulon/Online/Data/rtc-in.udl')
 # def UdlRead(filepath):
