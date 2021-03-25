@@ -12,10 +12,14 @@ dformat = '%Y-%m-%d %H:%M:%S'
 
 ## DB CONFIGURATION NAMES
 config = utils.dbConfig(dbflav, dbpath)
-colsens = config['INIDFLDNAME']
-coldate = config['INDATETIMEFLDNAME']
-colvalue = config['INVALUEFLDNAME']
-coldemand = config['INQUALITYFLDNAME']
+hstsens = config['INIDFLDNAME']
+hstdate = config['INDATETIMEFLDNAME']
+hstvalue = config['INVALUEFLDNAME']
+hstqual = config['INQUALITYFLDNAME']
+prdsens = config['DMIDFLDNAME']
+prddate = config['DMDATETIMEFLDNAME']
+prdvalue = config['DMVALUEFLDNAME']
+prdqual = config['DMQUALITYFLDNAME']
 colID = config['AUTOKEYID']
 
 ## DB DEMAND PARAMETERS
@@ -24,11 +28,12 @@ df_wd = utils.dbParam(dbflav, dbpath)
 ## LOOP
 for index, row in df_wd.iterrows():
     ## Sensor currently forecasted
-    print(row['ID'], row ['SENSORTABLE'], row['SENSORID'], row['PREDICTSTEP'], row['PREDICTDURATION'], row['HISTORYDURATION'], row['PREDICTTYPE'])
+    print(row['ID'], row ['SENSORTABLE'], row['SENSORID'], row ['PREDICTTABLE'], row['PREDICTSTEP'], row['PREDICTDURATION'], row['HISTORYDURATION'], row['PREDICTTYPE'])
 
     ## Get parameters
     tabsensor = row['SENSORTABLE']
     sensor = row['SENSORID']
+    tabdemand = row['PREDICTTABLE']
     rstime = row['PREDICTSTEP']
     leadtime = row['PREDICTDURATION']
     histtime = row['HISTORYDURATION']
@@ -43,19 +48,19 @@ for index, row in df_wd.iterrows():
     param8 = row['PARAM8']
 
     ## Delete previous forecast from sql
-    utils.dbDelete(dbflav, dbpath, sensor, tabsensor, colsens, coldemand)
-
+    utils.dbDelete(dbflav, dbpath, sensor, tabdemand, prdsens)
+    
     ## Get last historical date
-    ldate = utils.lastDate(dbflav, dbpath, sensor, tabsensor, coldate, colsens)
+    ldate = utils.lastDate(dbflav, dbpath, sensor, tabsensor, hstdate, hstsens)
 
     ## Compute water demand prediction dates
     start_train, stop_train, start_pred, stop_pred = utils.datesMgt(ldate, rstime, offtime, leadtime, histtime, dformat)
 
     ## Data read
-    df_in = utils.dbRead(dbflav, dbpath, sensor, tabsensor, colID, coldate, colsens)
+    df_in = utils.dbRead(dbflav, dbpath, sensor, tabsensor, colID, hstdate, hstsens)
 
     ## Pre-process
-    X_train, y_train, df_X, df_y, X_pred = utils.preProcess(df_in, coldate, colID, colsens, coldemand, colvalue, rstime, offtime, start_train, stop_train, start_pred, stop_pred)
+    X_train, y_train, df_X, df_y, X_pred = utils.preProcess(df_in, hstdate, colID, hstsens, hstqual, hstvalue, rstime, offtime, start_train, stop_train, start_pred, stop_pred)
 
     ## Demand computation
     if row['PREDICTTYPE'] == 'HOLTWINTERS': # Need historical data
@@ -78,13 +83,12 @@ for index, row in df_wd.iterrows():
         fcst = np.mean(fcst,axis=1)
 
     ## Post-process
-    df_out = utils.postProcess(fcst, df_X, sensor, coldate, colID, colsens, coldemand, colvalue, start_pred, stop_pred)
+    df_out = utils.postProcess(fcst, df_X, sensor, prddate, colID, prdsens, prdqual, prdvalue, start_pred, stop_pred)
 
     ## Write new forecast to sql
-    utils.dbWrite(df_out, dbflav, dbpath, sensor, tabsensor)
+    utils.dbWrite(df_out, dbflav, dbpath, sensor, tabdemand)
 
     # import pdb; pdb.set_trace() # continue
-
 
 # CREATE TABLE WDO_DEMANDPREDICTION (
 # 	ID INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE NOT NULL,

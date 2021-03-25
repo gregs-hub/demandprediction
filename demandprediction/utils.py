@@ -5,14 +5,14 @@ import datetime
 from datetime import datetime, timedelta
 import sqlite3
 
-def dbRead(dbflav, dbpath, sensor, tabsensor, colID, coldate, colsens):
+def dbRead(dbflav, dbpath, sensor, tabsensor, colID, hstdate, hstsens):
     ### READ
     if dbflav == 'sqlite':
         # Read sqlite query results into a pandas DataFrame
         con = sqlite3.connect(dbpath)
-        print("SELECT * FROM "+tabsensor+" WHERE "+colsens+"='"+sensor+"' ORDER BY "+coldate+" ASC, "+colID+" ASC", end='')
+        print("SELECT * FROM "+tabsensor+" WHERE "+hstsens+"='"+sensor+"' ORDER BY "+hstdate+" ASC, "+colID+" ASC", end='')
         try:
-            df = pd.read_sql_query("SELECT * FROM "+tabsensor+" WHERE "+colsens+"='"+sensor+"' ORDER BY "+coldate+" ASC, "+colID+" ASC", con)
+            df = pd.read_sql_query("SELECT * FROM "+tabsensor+" WHERE "+hstsens+"='"+sensor+"' ORDER BY "+hstdate+" ASC, "+colID+" ASC", con)
             con.execute('REINDEX '+tabsensor)
             con.commit()
             con.close()
@@ -25,15 +25,15 @@ def dbRead(dbflav, dbpath, sensor, tabsensor, colID, coldate, colsens):
     else:
         pass
 
-def dbWrite(df, dbflav, dbpath, sensor, tabsensor):
+def dbWrite(df, dbflav, dbpath, sensor, tabdemand):
     ### WRITE
     if dbflav == 'sqlite':
         # Write pandas to a sqlite table
         con = sqlite3.connect(dbpath)
         print('WRITE TO DATABASE FOR '+sensor, end='')
         try:
-            df.to_sql(tabsensor, con, if_exists="append", index=False)
-            con.execute('REINDEX '+tabsensor)
+            df.to_sql(tabdemand, con, if_exists="append", index=False)
+            con.execute('REINDEX '+tabdemand)
             con.commit()
             con.close()
             print('... done')
@@ -44,16 +44,15 @@ def dbWrite(df, dbflav, dbpath, sensor, tabsensor):
     else:
         pass
 
-def dbDelete(dbflav, dbpath, sensor, tabsensor, colsens, coldemand):
+def dbDelete(dbflav, dbpath, sensor, tabdemand, prdsens):
     ### DELETE
     if dbflav == 'sqlite':
         # Delete sqlite rows based on a condition
-        demandCode = int(9)
         con = sqlite3.connect(dbpath)
-        print("DELETE FROM "+tabsensor+" WHERE "+colsens+"=='"+sensor+"' AND "+coldemand+" == "+str(demandCode), end='')
+        print("DELETE FROM "+tabdemand+" WHERE "+prdsens+"=='"+sensor+"'", end='')
         try:
-            con.execute("DELETE FROM "+tabsensor+" WHERE "+colsens+"=='"+sensor+"' AND "+coldemand+" == "+str(demandCode))
-            con.execute('REINDEX '+tabsensor)
+            con.execute("DELETE FROM "+tabdemand+" WHERE "+prdsens+"=='"+sensor+"'")
+            con.execute('REINDEX '+tabdemand)
             con.commit()
             con.close()
             print('... done')
@@ -68,7 +67,7 @@ def dbConfig(dbflav, dbpath):
     ### GET CONFIG FROM DATABASE
     if dbflav == 'sqlite':
         # Read sqlite configuration
-        lkey = ['INIDFLDNAME','INDATETIMEFLDNAME','INVALUEFLDNAME','INQUALITYFLDNAME','AUTOKEYID']
+        lkey = ['INIDFLDNAME','INDATETIMEFLDNAME','INVALUEFLDNAME','INQUALITYFLDNAME','AUTOKEYID','DMIDFLDNAME','DMDATETIMEFLDNAME','DMVALUEFLDNAME','DMQUALITYFLDNAME']
         dkey = {}
         for l in lkey:
             con = sqlite3.connect(dbpath)
@@ -106,15 +105,15 @@ def dbParam(dbflav, dbpath):
     else:
         pass
 
-def lastDate(dbflav, dbpath, sensor, tabsensor, coldate, colsens):
+def lastDate(dbflav, dbpath, sensor, tabsensor, hstdate, hstsens):
     ### READ LAST DATE FOR CURRENT SENSOR
     if dbflav == 'sqlite':
         # Read sqlite query results into a pandas DataFrame
         con = sqlite3.connect(dbpath)
-        print("SELECT * FROM "+tabsensor+" WHERE "+colsens+"='"+sensor+"' ORDER BY "+coldate+" DESC LIMIT 1", end='')
+        print("SELECT * FROM "+tabsensor+" WHERE "+hstsens+"='"+sensor+"' ORDER BY "+hstdate+" DESC LIMIT 1", end='')
         try:
-            df = pd.read_sql_query("SELECT * FROM "+tabsensor+" WHERE "+colsens+"='"+sensor+"' ORDER BY "+coldate+" DESC LIMIT 1", con)
-            ldate = df[coldate][0]
+            df = pd.read_sql_query("SELECT * FROM "+tabsensor+" WHERE "+hstsens+"='"+sensor+"' ORDER BY "+hstdate+" DESC LIMIT 1", con)
+            ldate = df[hstdate][0]
             con.commit()
             con.close()
             print('... done')
@@ -140,16 +139,16 @@ def datesMgt(ldate, rstime, offtime, leadtime, histtime, dformat):
     stop_pred = datetime.strftime(_roundto(rstime, lstdate+timedelta(minutes=leadtime+rstime)),dformat)
     return start_train, stop_train, start_pred, stop_pred
 
-def preProcess(df, coldate, colID, colsens, coldemand, colvalue, rstime, offtime, start_train, stop_train, start_pred, stop_pred):
-    # Define coldate as datetime index
-    df = df.set_index(pd.DatetimeIndex(df[coldate])).drop(columns=coldate)
-    # Drop unused columns : coldID, colsens, coldemand
-    df.drop(columns=[colID,colsens,coldemand], inplace=True)
+def preProcess(df, hstdate, colID, hstsens, hstqual, hstvalue, rstime, offtime, start_train, stop_train, start_pred, stop_pred):
+    # Define hstdate as datetime index
+    df = df.set_index(pd.DatetimeIndex(df[hstdate])).drop(columns=hstdate)
+    # Drop unused columns : coldID, hstsens, hstqual
+    df.drop(columns=[colID,hstsens,hstqual], inplace=True)
     # Data filtering ### TODO
     df_mod = df
     df_mod.replace(0,np.nan,inplace=True)
-    df_mod[df_mod[colvalue]>df_mod[colvalue].quantile(0.999)] = np.nan
-    df_mod[df_mod[colvalue]<df_mod[colvalue].quantile(0.001)] = np.nan
+    df_mod[df_mod[hstvalue]>df_mod[hstvalue].quantile(0.999)] = np.nan
+    df_mod[df_mod[hstvalue]<df_mod[hstvalue].quantile(0.001)] = np.nan
     df_mod.dropna(inplace=True)
     # Data resampling ### TODO
     df_rs = df.resample(str(rstime)+'min').mean()
@@ -163,8 +162,8 @@ def preProcess(df, coldate, colID, colsens, coldemand, colvalue, rstime, offtime
     df_rs['HR'] = df_rs.index.hour.astype(float)
     # df_rs['MN'] = df_rs.index.minute.astype(float)
     # Data formatting for water demand algorithms
-    df_X = df_rs.drop(colvalue, axis=1)
-    df_y = df_rs[colvalue]
+    df_X = df_rs.drop(hstvalue, axis=1)
+    df_y = df_rs[hstvalue]
     X = np.transpose(df_X.values)
     y = df_y.values
     y = y.reshape(1,len(y))
@@ -180,23 +179,22 @@ def preProcess(df, coldate, colID, colsens, coldemand, colvalue, rstime, offtime
     y_train = np.squeeze(y_train, axis=0)
     return X_train, y_train, df_X, df_y, X_pred
 
-def postProcess(fcst, df_X, sensor, coldate, colID, colsens, coldemand, colvalue, start_pred, stop_pred):
+def postProcess(fcst, df_X, sensor, prddate, colID, prdsens, prdqual, prdvalue, start_pred, stop_pred):
     steps = len(df_X.loc[start_pred:stop_pred].index)
     # Code int(9) is used to warn it's a predicted value
     # TODO post-process anomalies, for now only > 0
     fcst[fcst < 0] = 0
-    df_out = pd.DataFrame([[sensor]*steps, fcst, df_X.loc[start_pred:stop_pred].index, [9]*steps],[colsens, colvalue, coldate, coldemand]).transpose()
+    df_out = pd.DataFrame([[sensor]*steps, fcst, df_X.loc[start_pred:stop_pred].index, [9]*steps],[prdsens, prdvalue, prddate, prdqual]).transpose()
     print(df_out)
     return df_out
 
 
-
 ## IN PROGRESS
 
-# df[coldemand] = int(9)
-# dbWrite(df, dbflav, dbpath, sensor, tabsensor, colID, coldate, colsens, coldemand)
+# df[hstqual] = int(9)
+# dbWrite(df, dbflav, dbpath, sensor, tabsensor, colID, hstdate, hstsens, hstqual)
 
-# dbDelete(dbflav, dbpath, sensor, tabsensor, colsens, coldemand)
+# dbDelete(dbflav, dbpath, sensor, tabsensor, hstsens, hstqual)
 
 # # UdlRead('./dev/toulon/Online/Data/rtc-in.udl')
 # def UdlRead(filepath):

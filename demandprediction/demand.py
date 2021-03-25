@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from sklearn.neural_network import MLPRegressor
-# import pyrenn as prn
+import pyrenn as prn
 
 class HoltWinters:
     def __init__(self, trend: str = 'mul', seasonal: str = 'mul', seasonal_periods: int = 24, horizon: int = 72):
