@@ -85,6 +85,7 @@ for index, row in df_wd.iterrows():
 
     # import pdb; pdb.set_trace() # continue
 
+
 # CREATE TABLE WDO_DEMANDPREDICTION (
 # 	ID INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE NOT NULL,
 # 	SENSORTABLE TEXT NOT NULL,
