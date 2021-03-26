@@ -140,19 +140,22 @@ def lastDate(dbflav, dbpath, sensor, tabsensor, coldate, colsens):
     else:
         pass
 
-def datesMgt(ldate, rstime, offtime, leadtime, histtime, dformat):
+def datesMgt(ldate, rstime, offtime, leadtime, histtime, dformat, realtime):
     ### DATES MANAGEMENT
-    def _roundto(rst, date):
+    def _roundto(rst, date, direct):
         # Round to nearest (up : ceil)
-        new_minute = (date.minute // rst + (1)) * rst # for direction down (floor) : new_minute = (date.minute // rst + (0)) * rst
+        new_minute = (date.minute // rst + (direct)) * rst # direct = direction => floor is 0, ceil is 1
         return date + timedelta(minutes=new_minute - date.minute, seconds=-date.second, microseconds=-date.microsecond)
-    toftime = _roundto(rstime, datetime.strptime(ldate, dformat)) # toftime = roundto(rstime, datetime.now().replace(microsecond=0, second=0, minute=0))
+    if realtime:
+        toftime = _roundto(rstime, datetime.now().replace(microsecond=0, second=0),0)
+    else:
+        toftime = _roundto(rstime, datetime.strptime(ldate, dformat).replace(microsecond=0, second=0),0)
     lstdate = datetime.strptime(ldate, dformat)
-    start_train = datetime.strftime(_roundto(rstime, lstdate+timedelta(minutes=-histtime)),dformat)
-    stop_train = datetime.strftime(toftime,dformat)
+    start_train = datetime.strftime(_roundto(rstime, lstdate+timedelta(minutes=-histtime),1),dformat)
+    stop_train = datetime.strftime(_roundto(rstime, datetime.strptime(ldate, dformat),1),dformat)
     start_pred = stop_train
-    stop_pred = datetime.strftime(_roundto(rstime, lstdate+timedelta(minutes=leadtime+rstime)),dformat)
-    return start_train, stop_train, start_pred, stop_pred
+    stop_pred = datetime.strftime(_roundto(rstime, toftime+timedelta(minutes=leadtime+rstime),0),dformat)
+    return start_train, stop_train, start_pred, stop_pred, toftime
 
 def preProcess(df, coldate, colID, colsens, colqual, colvalue, rstime, offtime, start_train, stop_train, start_pred, stop_pred):
     # Define coldate as datetime index

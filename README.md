@@ -2,7 +2,11 @@
 This package aims to provide algorithms for water demand prediction specifically tailored to DHI users and the water domain. It is simple to install and deploy operationally. Not for now accessible to everyone (private).
 
 # Installation
-pip install git+https://github.com/DHIgrse/demandprediction.git
+- Install Python 3 (> 3.7)
+- Open a Command Prompt (Terminal) as adiministrator
+- Go to demandprediction-master unzipped directory (cd /Path/)
+- Install demandprediction package to 
+<!-- pip install git+https://github.com/DHIgrse/demandprediction.git -->
 
 # Definitions
 Two algorithms are implemented for now
