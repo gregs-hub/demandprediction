@@ -1,4 +1,4 @@
-# demandprediction: Water Demand Prediction algorithms associated to 
+# demandprediction: Water Demand Prediction algorithms associated to Waternet Advisor
 This package aims to provide algorithms for water demand prediction specifically tailored to DHI users and the water domain. It is simple to install and deploy operationally. Not for now accessible to everyone (private).
 
 # Installation
