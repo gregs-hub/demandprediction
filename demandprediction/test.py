@@ -4,7 +4,6 @@
 from demandprediction import demand
 from demandprediction import utils
 import numpy as np
-import configparser
 
 ## INFOS AND TODO
 # for now only sqlite, with database path manually provided
@@ -15,18 +14,7 @@ import configparser
 # supposed to work with < 1h timesteps, but not tested intensively
 
 ## READ CONFIGURATION FILE
-iniconfig = configparser.ConfigParser()
-# config['DEMAND'] = {'databaseFlavour': 'sqlite', 'databasePath': 'C:/dhi/demand/WDONLINE.db', 'resamplingOffset': '0min', 'dateFormat': 'YYYY-mm-dd HH:MM:SS'}
-# with open('config.ini', 'w') as configfile:
-#     config.write(configfile)
-iniconfig.read('config.ini')
-dbflav = iniconfig['DEMAND']['databaseFlavour'] # 'sqlite'
-dbpath = iniconfig['DEMAND']['databasePath'] # 'C:/dhi/demand/WDONLINE.db'
-offtime = iniconfig['DEMAND']['resamplingOffset'] # "0min"
-dformat = iniconfig['DEMAND']['dateFormat'] # '%Y-%m-%d %H:%M:%S'
-dformat = dformat.replace('yyyy','%Y').replace('MM','%m').replace('dd','%d').replace('hh','%H').replace('mm','%M').replace('ss','%S')
-
-import pdb; pdb.set_trace() # continue
+dbflav, dbpath, offtime, dformat = utils.iniConfig('config.ini')
 
 ## DB CONFIGURATION NAMES
 dbconfig = utils.dbConfig(dbflav, dbpath)
@@ -130,3 +118,170 @@ for index, row in df_wd.iterrows():
 # 	DATE_MESURE TIMESTAMP NOT NULL,
 # 	CODE INTEGER
 # )
+
+
+##### UTILS
+# import pyodbc
+
+
+## IN PROGRESS
+
+# df[colqual] = int(9)
+# dbWrite(df, dbflav, dbpath, sensor, tabsensor, colID, coldate, colsens, colqual)
+
+# dbDelete(dbflav, dbpath, sensor, tabsensor, colsens, colqual)
+
+# # UdlRead('./dev/toulon/Online/Data/rtc-in.udl')
+# def UdlRead(filepath):
+#     udl = open(filepath)
+#     connstring = udl.readlines()[4]
+#     connstring = connstring.replace('\x00','')
+#     connstring = connstring.split(';')
+#     return connstring
+
+# udl = open('./dev/rtc-in.udl')
+# constr = udl.readlines()[4]
+# constr = constr.replace('\x00','')
+# constr = constr.replace('\n','')
+# # constr = constr.split(';')
+# cnxn = pyodbc.connect(constr)
+
+# import adodbapi
+# databasename = 'D:\directorypath\DatabaseName.accdb'  
+# constr = 'Provider=Microsoft.ACE.OLEDB.12.0;Data Source=%s'  % databasename 
+# db = adodbapi.connect(constr)
+
+
+# db = adodbapi.connect('Provider=MSDASQL.1;Persist Security Info=False;Extended Properties="DSN=SQLite3 Datasource;Database=C:\\dhi\\demand\\SCADA.sqlite;StepAPI=0;SyncPragma=NORMAL;NoTXN=0;Timeout=100000;ShortNames=0;LongNames=0;NoCreat=0;NoWCHAR=0;FKSupport=0;JournalMode=;OEMCP=0;LoadExt=;BigInt=0;JDConv=0;')
+
+
+# import re
+# dbconf = list(filter(re.compile("Database=*").match, connstring))
+# dbflav = list(filter(re.compile("*DSN=*").match, connstring))
+
+
+# ; Everything after this line is an OLE DB initstring
+# Provider=PGNP.1;Password=12345;Persist Security Info=True;User ID=postgres;Initial Catalog=postgres;Data Source=localhost;Extended Properties=""
+
+
+# import pyodbc
+# databasename = 'D:\otherdirectorypath\OtherDatabaseName.mdb'
+# constr = 'DRIVER={Microsoft Access Driver (*.mdb)};DBQ=%s;'  % databasename
+# db = pyodbc.connect(constr)
+
+
+
+# import adodbapi
+# myhost = r".\SQLEXPRESS"
+# mydatabase = "Northwind"
+# myuser = "guest"
+# mypassword = "12345678"
+# connStr = """Provider=SQLOLEDB.1; User ID=%s; Password=%s;
+# Initial Catalog=%s;Data Source= %s"""
+# myConnStr = connStr % (myuser, mypassword, mydatabase, myhost)
+# myConn = adodbapi.connect(myConnStr)
+
+# connStr = """Provider=SQLOLEDB.1; User ID=%(user)s;
+# Password=%(password)s;"Initial Catalog=%(database)s;
+# Data Source= %(host)s"""
+# myConn=adodbapi.connect(connStr, myuser, mypassword, myhost, mydatabase)
+
+
+# myConn = adodbapi.connect(connStr, user=myuser, password=mypassword,
+# host=myhost, database=mydatabase)
+
+
+
+##### DEMAND
+# import pyrenn as prn
+
+# class ANNDyn:
+#     # nmemb = 5
+#     # niter = 500
+#     # [X.shape[0],12,1]
+
+#     # def __init__(self, trend: str = 'mul', seasonal: str = 'mul', seasonal_periods: int = 24, horizon: int = 72):
+#     #     self.trend = trend
+#     #     self.seasonal = seasonal
+#     #     self.seasonal_periods = seasonal_periods
+#     #     self.horizon = horizon
+#     #     pass
+
+#     # def learn(self, trainY: pd.Series):
+#     #     # self.validate(data)
+#     #     self.model = ExponentialSmoothing(trainY, trend = self.trend, seasonal = self.seasonal, seasonal_periods = self.seasonal_periods).fit()
+#     #     return self
+
+#     # def predict(self):
+#     #     predY = self.model.forecast(self.horizon)
+#     #     return predY
+#     pass
+
+# from demandprediction.demand import HoltWinters
+# model = HoltWinters('mul','add', 24, 72)
+# model.learn(y_train)
+# fcst = model.predict()
+
+# from demandprediction.demand import MLPDynamic
+# model = MLPDynamic('relu', (64,128,64), 'adam', 'adaptive', 0.01, 100000, 1000, 1)
+# model.learn(X_train.T,y_train)
+# fcst = model.predict(X_test.T)
+
+
+
+
+# class WrongInputDataType(Exception):
+#     def __init__(self, message="Input data must be a pandas Series !"):
+#         self.message = message
+#         super().__init__(self.message)
+
+# class Rectangle:
+#     def __init__(self, length, width):
+#         self.length = length
+#         self.width = width
+
+#     def area(self):
+#         return self.length * self.width
+
+#     def perimeter(self):
+#         return 2 * self.length + 2 * self.width
+
+# class Square:
+#     def __init__(self, length):
+#         self.length = length
+
+#     def area(self):
+#         return self.length * self.length
+
+#     def perimeter(self):
+#         return 4 * self.length
+
+# >>> square = Square(4)
+# >>> square.area()
+# 16
+# >>> rectangle = Rectangle(2,4)
+# >>> rectangle.area()
+
+
+
+
+# class Rectangle:
+#     def __init__(self, length, width):
+#         self.length = length
+#         self.width = width
+
+#     def area(self):
+#         return self.length * self.width
+
+#     def perimeter(self):
+#         return 2 * self.length + 2 * self.width
+
+# # Here we declare that the Square class inherits from the Rectangle class
+# class Square(Rectangle):
+#     def __init__(self, length):
+#         super().__init__(length, length)
+# Here, you’ve used super() to call the __init__() of the Rectangle class, allowing you to use it in the Square class without repeating code. Below, the core functionality remains after making changes:
+
+# >>> square = Square(4)
+# >>> square.area()
+# 16

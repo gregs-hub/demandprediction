@@ -4,7 +4,21 @@ import numpy as np
 import datetime
 from datetime import datetime, timedelta
 import sqlite3
-# import pyodbc
+import configparser
+
+def iniConfig(configFile):
+    ## READ CONFIGURATION FILE
+    iniconfig = configparser.ConfigParser()
+    # config['DEMAND'] = {'databaseFlavour': 'sqlite', 'databasePath': 'C:/dhi/demand/WDONLINE.db', 'resamplingOffset': '0min', 'dateFormat': 'YYYY-mm-dd HH:MM:SS'}
+    # with open('config.ini', 'w') as configfile:
+    #     config.write(configfile)
+    iniconfig.read(configFile)
+    dbflav = iniconfig['DEMAND']['databaseFlavour'] # 'sqlite'
+    dbpath = iniconfig['DEMAND']['databasePath'] # 'C:/dhi/demand/WDONLINE.db'
+    offtime = iniconfig['DEMAND']['resamplingOffset'] # "0min"
+    dformat = iniconfig['DEMAND']['dateFormat'] # '%Y-%m-%d %H:%M:%S'
+    dformat = dformat.replace('yyyy','%Y').replace('MM','%m').replace('dd','%d').replace('hh','%H').replace('mm','%M').replace('ss','%S')
+    return dbflav, dbpath, offtime, dformat
 
 def dbRead(dbflav, dbpath, sensor, tabsensor, colID, coldate, colsens):
     ### READ
@@ -188,73 +202,3 @@ def postProcess(fcst, df_X, sensor, coldate, colID, colsens, colqual, colvalue, 
     df_out = pd.DataFrame([[sensor]*steps, fcst, df_X.loc[start_pred:stop_pred].index, [9]*steps],[colsens, colvalue, coldate, colqual]).transpose()
     print(df_out)
     return df_out
-
-
-## IN PROGRESS
-
-# df[colqual] = int(9)
-# dbWrite(df, dbflav, dbpath, sensor, tabsensor, colID, coldate, colsens, colqual)
-
-# dbDelete(dbflav, dbpath, sensor, tabsensor, colsens, colqual)
-
-# # UdlRead('./dev/toulon/Online/Data/rtc-in.udl')
-# def UdlRead(filepath):
-#     udl = open(filepath)
-#     connstring = udl.readlines()[4]
-#     connstring = connstring.replace('\x00','')
-#     connstring = connstring.split(';')
-#     return connstring
-
-# udl = open('./dev/rtc-in.udl')
-# constr = udl.readlines()[4]
-# constr = constr.replace('\x00','')
-# constr = constr.replace('\n','')
-# # constr = constr.split(';')
-# cnxn = pyodbc.connect(constr)
-
-# import adodbapi
-# databasename = 'D:\directorypath\DatabaseName.accdb'  
-# constr = 'Provider=Microsoft.ACE.OLEDB.12.0;Data Source=%s'  % databasename 
-# db = adodbapi.connect(constr)
-
-
-# db = adodbapi.connect('Provider=MSDASQL.1;Persist Security Info=False;Extended Properties="DSN=SQLite3 Datasource;Database=C:\\dhi\\demand\\SCADA.sqlite;StepAPI=0;SyncPragma=NORMAL;NoTXN=0;Timeout=100000;ShortNames=0;LongNames=0;NoCreat=0;NoWCHAR=0;FKSupport=0;JournalMode=;OEMCP=0;LoadExt=;BigInt=0;JDConv=0;')
-
-
-# import re
-# dbconf = list(filter(re.compile("Database=*").match, connstring))
-# dbflav = list(filter(re.compile("*DSN=*").match, connstring))
-
-
-# ; Everything after this line is an OLE DB initstring
-# Provider=PGNP.1;Password=12345;Persist Security Info=True;User ID=postgres;Initial Catalog=postgres;Data Source=localhost;Extended Properties=""
-
-
-# import pyodbc
-# databasename = 'D:\otherdirectorypath\OtherDatabaseName.mdb'
-# constr = 'DRIVER={Microsoft Access Driver (*.mdb)};DBQ=%s;'  % databasename
-# db = pyodbc.connect(constr)
-
-
-
-# import adodbapi
-# myhost = r".\SQLEXPRESS"
-# mydatabase = "Northwind"
-# myuser = "guest"
-# mypassword = "12345678"
-# connStr = """Provider=SQLOLEDB.1; User ID=%s; Password=%s;
-# Initial Catalog=%s;Data Source= %s"""
-# myConnStr = connStr % (myuser, mypassword, mydatabase, myhost)
-# myConn = adodbapi.connect(myConnStr)
-
-# connStr = """Provider=SQLOLEDB.1; User ID=%(user)s;
-# Password=%(password)s;"Initial Catalog=%(database)s;
-# Data Source= %(host)s"""
-# myConn=adodbapi.connect(connStr, myuser, mypassword, myhost, mydatabase)
-
-
-# myConn = adodbapi.connect(connStr, user=myuser, password=mypassword,
-# host=myhost, database=mydatabase)
-
-
-

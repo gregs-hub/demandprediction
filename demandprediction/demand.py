@@ -1,8 +1,6 @@
 import pandas as pd
-import numpy as np
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from sklearn.neural_network import MLPRegressor
-import pyrenn as prn
 
 class HoltWinters:
     def __init__(self, trend: str = 'mul', seasonal: str = 'mul', seasonal_periods: int = 24, horizon: int = 72):
@@ -62,93 +60,3 @@ class MLPDynamic:
         predY = self.model.predict(predX)
         return predY
 
-class ANNDyn:
-    # nmemb = 5
-    # niter = 500
-    # [X.shape[0],12,1]
-
-    # def __init__(self, trend: str = 'mul', seasonal: str = 'mul', seasonal_periods: int = 24, horizon: int = 72):
-    #     self.trend = trend
-    #     self.seasonal = seasonal
-    #     self.seasonal_periods = seasonal_periods
-    #     self.horizon = horizon
-    #     pass
-
-    # def learn(self, trainY: pd.Series):
-    #     # self.validate(data)
-    #     self.model = ExponentialSmoothing(trainY, trend = self.trend, seasonal = self.seasonal, seasonal_periods = self.seasonal_periods).fit()
-    #     return self
-
-    # def predict(self):
-    #     predY = self.model.forecast(self.horizon)
-    #     return predY
-    pass
-
-# from demandprediction.demand import HoltWinters
-# model = HoltWinters('mul','add', 24, 72)
-# model.learn(y_train)
-# fcst = model.predict()
-
-# from demandprediction.demand import MLPDynamic
-# model = MLPDynamic('relu', (64,128,64), 'adam', 'adaptive', 0.01, 100000, 1000, 1)
-# model.learn(X_train.T,y_train)
-# fcst = model.predict(X_test.T)
-
-
-
-
-# class WrongInputDataType(Exception):
-#     def __init__(self, message="Input data must be a pandas Series !"):
-#         self.message = message
-#         super().__init__(self.message)
-
-# class Rectangle:
-#     def __init__(self, length, width):
-#         self.length = length
-#         self.width = width
-
-#     def area(self):
-#         return self.length * self.width
-
-#     def perimeter(self):
-#         return 2 * self.length + 2 * self.width
-
-# class Square:
-#     def __init__(self, length):
-#         self.length = length
-
-#     def area(self):
-#         return self.length * self.length
-
-#     def perimeter(self):
-#         return 4 * self.length
-
-# >>> square = Square(4)
-# >>> square.area()
-# 16
-# >>> rectangle = Rectangle(2,4)
-# >>> rectangle.area()
-
-
-
-
-# class Rectangle:
-#     def __init__(self, length, width):
-#         self.length = length
-#         self.width = width
-
-#     def area(self):
-#         return self.length * self.width
-
-#     def perimeter(self):
-#         return 2 * self.length + 2 * self.width
-
-# # Here we declare that the Square class inherits from the Rectangle class
-# class Square(Rectangle):
-#     def __init__(self, length):
-#         super().__init__(length, length)
-# Here, you’ve used super() to call the __init__() of the Rectangle class, allowing you to use it in the Square class without repeating code. Below, the core functionality remains after making changes:
-
-# >>> square = Square(4)
-# >>> square.area()
-# 16
