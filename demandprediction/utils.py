@@ -4,6 +4,7 @@ import numpy as np
 import datetime
 from datetime import datetime, timedelta
 import sqlite3
+# import pyodbc
 
 def dbRead(dbflav, dbpath, sensor, tabsensor, colID, coldate, colsens):
     ### READ
@@ -67,7 +68,7 @@ def dbConfig(dbflav, dbpath):
     ### GET CONFIG FROM DATABASE
     if dbflav == 'sqlite':
         # Read sqlite configuration
-        lkey = ['INIDFLDNAME','INDATETIMEFLDNAME','INVALUEFLDNAME','INQUALITYFLDNAME','AUTOKEYID','DMIDFLDNAME','DMDATETIMEFLDNAME','DMVALUEFLDNAME','DMQUALITYFLDNAME']
+        lkey = ['INIDFLDNAME','INDATETIMEFLDNAME','INVALUEFLDNAME','INQUALITYFLDNAME','AUTOKEYID']
         dkey = {}
         for l in lkey:
             con = sqlite3.connect(dbpath)
@@ -188,6 +189,7 @@ def postProcess(fcst, df_X, sensor, coldate, colID, colsens, colqual, colvalue, 
     print(df_out)
     return df_out
 
+
 ## IN PROGRESS
 
 # df[colqual] = int(9)
@@ -207,8 +209,8 @@ def postProcess(fcst, df_X, sensor, coldate, colID, colsens, colqual, colvalue, 
 # constr = udl.readlines()[4]
 # constr = constr.replace('\x00','')
 # constr = constr.replace('\n','')
-# # connstring = connstring.split(';')
-
+# # constr = constr.split(';')
+# cnxn = pyodbc.connect(constr)
 
 # import adodbapi
 # databasename = 'D:\directorypath\DatabaseName.accdb'  

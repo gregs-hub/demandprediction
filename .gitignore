@@ -874,3 +874,5 @@ notebooks/.ipynb_checkpoints/Water_demand-checkpoint.ipynb
 requests/FW_ Demand forecasting for WDO (to be used in SWDE).msg
 requests/RE_ Demand forecasting for WDO (to be used in SWDE).msg
 requests/WDO_DemandForecasting.docx
+external/psqlodbc_13_00_0000-x64.zip
+external/sqliteodbc_w64.exe

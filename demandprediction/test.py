@@ -1,22 +1,40 @@
 # pip install -U "C:/Users/grse/OneDrive - DHI/Python/demandprediction/demandprediction-main"
+# import pdb; pdb.set_trace() # continue
 
 from demandprediction import demand
 from demandprediction import utils
 import numpy as np
+import configparser
 
-## MANUAL INPUTS
-dbflav = 'sqlite'
-dbpath = 'C:/dhi/demand/WDONLINE.db'
-offtime = "0min" # Offset time TODO
-dformat = '%Y-%m-%d %H:%M:%S'
+## INFOS AND TODO
+# for now only sqlite, with database path manually provided
+# for now, resampling time (rstime) is both computational time step (water demand algo) and output predictions time step
+# offset time (for resampling) can b eprovided manually
+# date format is manually provided
+# two algorithms with some parameters editable : Holt Winters prediction (exponential smoothing) and Multi Layer Perceptron Regressor
+# supposed to work with < 1h timesteps, but not tested intensively
+
+## READ CONFIGURATION FILE
+iniconfig = configparser.ConfigParser()
+# config['DEMAND'] = {'databaseFlavour': 'sqlite', 'databasePath': 'C:/dhi/demand/WDONLINE.db', 'resamplingOffset': '0min', 'dateFormat': 'YYYY-mm-dd HH:MM:SS'}
+# with open('config.ini', 'w') as configfile:
+#     config.write(configfile)
+iniconfig.read('config.ini')
+dbflav = iniconfig['DEMAND']['databaseFlavour'] # 'sqlite'
+dbpath = iniconfig['DEMAND']['databasePath'] # 'C:/dhi/demand/WDONLINE.db'
+offtime = iniconfig['DEMAND']['resamplingOffset'] # "0min"
+dformat = iniconfig['DEMAND']['dateFormat'] # '%Y-%m-%d %H:%M:%S'
+dformat = dformat.replace('yyyy','%Y').replace('MM','%m').replace('dd','%d').replace('hh','%H').replace('mm','%M').replace('ss','%S')
+
+import pdb; pdb.set_trace() # continue
 
 ## DB CONFIGURATION NAMES
-config = utils.dbConfig(dbflav, dbpath)
-colsens = config['INIDFLDNAME']
-coldate = config['INDATETIMEFLDNAME']
-colvalue = config['INVALUEFLDNAME']
-colqual = config['INQUALITYFLDNAME']
-colID = config['AUTOKEYID']
+dbconfig = utils.dbConfig(dbflav, dbpath)
+colsens = dbconfig['INIDFLDNAME']
+coldate = dbconfig['INDATETIMEFLDNAME']
+colvalue = dbconfig['INVALUEFLDNAME']
+colqual = dbconfig['INQUALITYFLDNAME']
+colID = dbconfig['AUTOKEYID']
 
 ## DB DEMAND PARAMETERS
 df_wd = utils.dbParam(dbflav, dbpath)
