@@ -46,7 +46,7 @@ for index, row in df_wd.iterrows():
 
     ## Compute water demand prediction dates
     realtime = True # Real time mode True/False (True means Time Of Forecast is now, False means user provide a date TODO)
-    start_train, stop_train, start_pred, stop_pred, toftime = utils.datesMgt(ldate, rstime, offtime, leadtime, histtime, dformat)
+    start_train, stop_train, start_pred, stop_pred, toftime = utils.datesMgt(ldate, rstime, offtime, leadtime, histtime, dformat, realtime)
     print('>>> Water demand prediction : TOF '+str(toftime))
 
     ## Data read

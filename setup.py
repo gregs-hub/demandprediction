@@ -5,8 +5,8 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="demandprediction",
-    version='0.0.1',
-    install_requires=["pandas>=1.2.0","statsmodels","sklearn"],
+    version='0.1.0',
+    install_requires=["pandas>=1.1.0","statsmodels","sklearn"],
     extras_require={
         "dev": ["pytest>=6.2.1"],
         "test": ["pytest>=6.2.1"],
