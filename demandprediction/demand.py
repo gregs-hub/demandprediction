@@ -3,7 +3,7 @@ from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from sklearn.neural_network import MLPRegressor
 
 class HoltWinters:
-    def __init__(self, trend: str = 'mul', seasonal: str = 'mul', seasonal_periods: int = 24, horizon: int = 72):
+    def __init__(self, trend: str = 'add', seasonal: str = 'add', seasonal_periods: int = 24*7, horizon: int = 72):
         self.trend = trend
         self.seasonal = seasonal
         self.seasonal_periods = seasonal_periods
@@ -25,7 +25,7 @@ class HoltWinters:
     #         raise WrongInputDataType()
 
 class MLPDynamic:
-    def __init__(self, activation: str = 'relu', hidden_layer_sizes: tuple = (100,), solver: str = 'sgd', learning_rate: str = 'adaptive', learning_rate_init: float = 0.001, max_iter: int = 1000, n_iter_no_change: int = 10, tol: float = 0.0000001):
+    def __init__(self, activation: str = 'relu', hidden_layer_sizes: tuple = (100,), solver: str = 'adam', learning_rate: str = 'adaptive', learning_rate_init: float = 0.01, max_iter: int = 10000, n_iter_no_change: int = 1000, tol: float = 0.01):
         self.activation = activation
         # alpha= 0.0001, 
         # batch_size= 'auto', 
