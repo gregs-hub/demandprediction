@@ -5,11 +5,11 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="demandprediction",
-    version='0.1.0',
-    install_requires=["pandas>=1.1.0","statsmodels","sklearn"],
+    version='0.2.0',
+    install_requires=[],
     extras_require={
-        "dev": ["pytest>=6.2.1"],
-        "test": ["pytest>=6.2.1"],
+        "dev": [],
+        "test": [],
     },
     author="Gregory Seiller",
     author_email="grse@dhigroup.com",
