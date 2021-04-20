@@ -3,7 +3,7 @@ This package aims to provide algorithms for water demand prediction specifically
 
 # Installation
 1. Unzip package at the desired location
-2. Install Python 3 (> 3.7)
+2. Install Python 3 (> 3.7) (select add PYTHONPATH)
 3. Open a Command Prompt (Terminal) as administrator
 4. Go to demandprediction-master unzipped directory: \
 `cd /Path/to/unzipped/package/`

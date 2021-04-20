@@ -1,44 +1,44 @@
+import configparser
 import pandas as pd
 from pandas.tseries.frequencies import to_offset
 import numpy as np
 import datetime
 from datetime import datetime, timedelta
 import sqlite3
-import configparser
+import psycopg2
+import psycopg2.extras as extras
 
 def iniConfig(configFile):
     ## READ CONFIGURATION FILE
     iniconfig = configparser.ConfigParser()
-    # config['DEMAND'] = {'databaseFlavour': 'sqlite', 'databasePath': 'C:/dhi/demand/WDONLINE.db', 'resamplingOffset': '0min', 'dateFormat': 'YYYY-mm-dd HH:MM:SS'}
-    # with open('config.ini', 'w') as configfile:
-    #     config.write(configfile)
     iniconfig.read(configFile)
-    dbflav = iniconfig['DEMAND']['databaseFlavour'] # 'sqlite'
-    dbpath = iniconfig['DEMAND']['databasePath'] # 'C:/dhi/demand/WDONLINE.db'
-    offtime = iniconfig['DEMAND']['resamplingOffset'] # "0min"
-    dformat = iniconfig['DEMAND']['dateFormat'] # '%Y-%m-%d %H:%M:%S'
+    cfgpath = iniconfig['DEMAND']['configPath']
+    dbflav = iniconfig['DEMAND']['databaseFlavour']
+    dbpath = iniconfig['DEMAND']['databasePath']
+    dbpath = dbpath.replace("'","")
+    offtime = iniconfig['DEMAND']['resamplingOffset']
+    dformat = iniconfig['DEMAND']['dateFormat']
     dformat = dformat.replace('yyyy','%Y').replace('MM','%m').replace('dd','%d').replace('hh','%H').replace('mm','%M').replace('ss','%S')
-    return dbflav, dbpath, offtime, dformat
+    return cfgpath, dbflav, dbpath, offtime, dformat
 
 def dbRead(dbflav, dbpath, sensor, tabsensor, colID, coldate, colsens):
     ### READ
     if dbflav == 'sqlite':
         # Read sqlite query results into a pandas DataFrame
         con = sqlite3.connect(dbpath)
-        print("SELECT * FROM "+tabsensor+" WHERE "+colsens+"='"+sensor+"' ORDER BY "+coldate+" ASC, "+colID+" ASC", end='')
-        try:
-            df = pd.read_sql_query("SELECT * FROM "+tabsensor+" WHERE "+colsens+"='"+sensor+"' ORDER BY "+coldate+" ASC, "+colID+" ASC", con)
-            con.execute('REINDEX '+tabsensor)
-            con.commit()
-            con.close()
-            print('... done')
-        except Exception as e:
-            con.close()
-            print(e)
-            print('... fail')
-        return df
-    else:
-        pass
+    elif dbflav == 'postgreSQL':
+        # Read postgreSQL query results into a pandas DataFrame
+        con = psycopg2.connect(dbpath)
+    print("SELECT * FROM "+tabsensor+" WHERE "+colsens+"='"+sensor+"' ORDER BY "+coldate+" ASC, "+colID+" ASC", end='')
+    try:
+        df = pd.read_sql_query("SELECT * FROM "+tabsensor+" WHERE "+colsens+"='"+sensor+"' ORDER BY "+coldate+" ASC, "+colID+" ASC", con)
+        con.close()
+        print('... done')
+    except Exception as e:
+        con.close()
+        print(' '+str(e))
+        print('... fail')
+    return df
 
 def dbWrite(df, dbflav, dbpath, sensor, tabdemand):
     ### WRITE
@@ -54,91 +54,122 @@ def dbWrite(df, dbflav, dbpath, sensor, tabdemand):
             print('... done')
         except Exception as e:
             con.close()
-            print(e)
+            print(' '+str(e))
             print('... fail')
-    else:
-        pass
+    elif dbflav == 'postgreSQL':
+        # Write pandas to a postgreSQL table
+        con = psycopg2.connect(dbpath)
+        print('WRITE TO DATABASE FOR '+sensor, end='')
+        try:
+            df.drop(columns='',inplace=True)
+        except Exception:
+            pass
+        try:
+            # Create a list of tupples from the dataframe values
+            tuples = [tuple(x) for x in df.to_numpy()]
+            # Comma-separated dataframe columns
+            cols = ','.join(list(df.columns))
+            # SQL quert to execute
+            query  = "INSERT INTO %s(%s) VALUES %%s" % (tabdemand, cols)
+            cur = con.cursor()
+            try:
+                extras.execute_values(cur, query, tuples)
+                con.commit()
+            except Exception as e:
+                con.rollback()
+            con.close()
+        except Exception as e:
+            con.close()
+            print(' '+str(e))
+            print('... fail')
 
 def dbDelete(dbflav, dbpath, sensor, tabdemand, colsens):
     ### DELETE
     if dbflav == 'sqlite':
         # Delete sqlite rows based on a condition
         con = sqlite3.connect(dbpath)
-        print("DELETE FROM "+tabdemand+" WHERE "+colsens+"=='"+sensor+"'", end='')
+        print("DELETE FROM "+tabdemand+" WHERE "+colsens+"='"+sensor+"'", end='')
         try:
-            con.execute("DELETE FROM "+tabdemand+" WHERE "+colsens+"=='"+sensor+"'")
+            con.execute("DELETE FROM "+tabdemand+" WHERE "+colsens+"='"+sensor+"'")
             con.execute('REINDEX '+tabdemand)
             con.commit()
             con.close()
             print('... done')
         except Exception as e:
             con.close()
-            print(e)
+            print(' '+str(e))
             print('... fail')
-    else:
-        pass
-
-def dbConfig(dbflav, dbpath):
-    ### GET CONFIG FROM DATABASE
-    if dbflav == 'sqlite':
-        # Read sqlite configuration
-        lkey = ['INIDFLDNAME','INDATETIMEFLDNAME','INVALUEFLDNAME','INQUALITYFLDNAME','AUTOKEYID']
-        dkey = {}
-        for l in lkey:
-            con = sqlite3.connect(dbpath)
-            print("SELECT KEYVALUE FROM WDO_SETTINGS WHERE KEYNAME == "+l, end='')
-            try:
-                tag = pd.read_sql_query("SELECT KEYVALUE FROM WDO_SETTINGS WHERE KEYNAME = '"+l+"'", con)
-                dkey[l] = tag.KEYVALUE[0]
-                con.commit()
-                con.close()
-                print('... done')
-            except Exception as e:
-                con.close()
-                print(e)
-                print('... fail')
-        return dkey
-    else:
-        pass
-
-def dbParam(dbflav, dbpath):
-    ### GET WATER DEMAND PARAMETERS FROM DATABASE
-    if dbflav == 'sqlite':
-        # Read sqlite water demand parameters
-        con = sqlite3.connect(dbpath)
-        print("SELECT * FROM WDO_DEMANDPREDICTION ORDER BY ID ASC", end='')
+    elif dbflav == 'postgreSQL':
+        # Delete postgreSQL rows based on a condition
+        con = psycopg2.connect(dbpath)
+        cur = con.cursor()
+        print("DELETE FROM "+tabdemand+" WHERE "+colsens+"='"+sensor+"'", end='')
         try:
-            df = pd.read_sql_query("SELECT * FROM WDO_DEMANDPREDICTION ORDER BY ID ASC", con)
+            cur.execute("DELETE FROM "+tabdemand+" WHERE "+colsens+"='"+sensor+"'")
             con.commit()
             con.close()
             print('... done')
         except Exception as e:
             con.close()
-            print(e)
+            print(' '+str(e))
             print('... fail')
-        return df
-    else:
-        pass
+
+def dbConfig(cfgpath):
+    ### GET CONFIG FROM DATABASE, ALWAYS IN SQLITE
+    # Read sqlite configuration
+    lkey = ['INIDFLDNAME','INDATETIMEFLDNAME','INVALUEFLDNAME','INQUALITYFLDNAME','AUTOKEYID']
+    dkey = {}
+    for l in lkey:
+        con = sqlite3.connect(cfgpath)
+        print("SELECT KEYVALUE FROM WDO_SETTINGS WHERE KEYNAME == "+l, end='')
+        try:
+            tag = pd.read_sql_query("SELECT KEYVALUE FROM WDO_SETTINGS WHERE KEYNAME = '"+l+"'", con)
+            dkey[l] = tag.KEYVALUE[0]
+            con.commit()
+            con.close()
+            print('... done')
+        except Exception as e:
+            con.close()
+            print(' '+str(e))
+            print('... fail')
+    return dkey
+
+def dbParam(cfgpath):
+    ### GET WATER DEMAND PARAMETERS FROM DATABASE, ALWAYS IN SQLITE
+    # Read sqlite demand parameters
+    con = sqlite3.connect(cfgpath)
+    print("SELECT * FROM WDO_DEMANDPREDICTION ORDER BY ID ASC", end='')
+    try:
+        df = pd.read_sql_query("SELECT * FROM WDO_DEMANDPREDICTION ORDER BY ID ASC", con)
+        con.commit()
+        con.close()
+        print('... done')
+    except Exception as e:
+        con.close()
+        print(' '+str(e))
+        print('... fail')
+    return df
 
 def lastDate(dbflav, dbpath, sensor, tabsensor, coldate, colsens):
     ### READ LAST DATE FOR CURRENT SENSOR
     if dbflav == 'sqlite':
         # Read sqlite query results into a pandas DataFrame
         con = sqlite3.connect(dbpath)
-        print("SELECT * FROM "+tabsensor+" WHERE "+colsens+"='"+sensor+"' ORDER BY "+coldate+" DESC LIMIT 1", end='')
-        try:
-            df = pd.read_sql_query("SELECT * FROM "+tabsensor+" WHERE "+colsens+"='"+sensor+"' ORDER BY "+coldate+" DESC LIMIT 1", con)
-            ldate = df[coldate][0]
-            con.commit()
-            con.close()
-            print('... done')
-        except Exception as e:
-            con.close()
-            print(e)
-            print('... fail')
-        return ldate
-    else:
-        pass
+    elif dbflav == 'postgreSQL':
+        # Read postgreSQL query results into a pandas DataFrame
+        con = psycopg2.connect(dbpath)
+    print("SELECT * FROM "+tabsensor+" WHERE "+colsens+"='"+sensor+"' ORDER BY "+coldate+" DESC LIMIT 1", end='')
+    try:
+        df = pd.read_sql_query("SELECT * FROM "+tabsensor+" WHERE "+colsens+"='"+sensor+"' ORDER BY "+coldate+" DESC LIMIT 1", con)
+        ldate = str(df[coldate][0])
+        con.commit()
+        con.close()
+        print('... done')
+    except Exception as e:
+        con.close()
+        print(' '+str(e))
+        print('... fail')
+    return ldate
 
 def datesMgt(ldate, rstime, offtime, leadtime, histtime, dformat, realtime):
     ### DATES MANAGEMENT
@@ -161,7 +192,10 @@ def preProcess(df, coldate, colID, colsens, colqual, colvalue, rstime, offtime, 
     # Define coldate as datetime index
     df = df.set_index(pd.DatetimeIndex(df[coldate])).drop(columns=coldate)
     # Drop unused columns : coldID, colsens, colqual
-    df.drop(columns=[colID,colsens,colqual], inplace=True)
+    try:
+        df.drop(columns=[colID,colsens,colqual], inplace=True)
+    except Exception: # in case codequal is empty
+        df.drop(columns=[colID,colsens], inplace=True)
     # Data filtering ### TODO
     df_mod = df
     df_mod.replace(0,np.nan,inplace=True)
@@ -169,9 +203,9 @@ def preProcess(df, coldate, colID, colsens, colqual, colvalue, rstime, offtime, 
     df_mod[df_mod[colvalue]<df_mod[colvalue].quantile(0.001)] = np.nan
     df_mod.dropna(inplace=True)
     # Data resampling ### TODO
-    df_rs = df.resample(str(rstime)+'min').mean()
+    df_rs = df.resample(str(min(60,rstime))+'min').mean() # If timestep is higher than 60 min, we use 60 min for resampling before reindexing to asked rstime
     df_rs.index = df_rs.index+to_offset(offtime)
-    df_rs.interpolate()
+    df_rs.interpolate(inplace=True)
     df_rs = df_rs.reindex(pd.date_range(start = start_train, end = stop_pred, freq=str(rstime)+'min'),fill_value=0.0)
     # TODO Cases where available data don't cover asked historical dates
     # Methodology using DOY/WD/HR, no data scaling ### TODO
@@ -187,9 +221,12 @@ def preProcess(df, coldate, colID, colsens, colqual, colvalue, rstime, offtime, 
     y = y.reshape(1,len(y))
     # Dates management
     trainFrom = np.where(df_X.index == start_train)[0][0]
-    trainTo = np.where(df_X.index == stop_train)[0][0]+1
+    trainTo = np.where(df_X.index == stop_train)[0][0]#+1
     predFrom = np.where(df_X.index == start_pred)[0][0]
-    predTo = np.where(df_X.index == stop_pred)[0][0]+3
+    try:
+        predTo = np.where(df_X.index == stop_pred)[0][0]+3
+    except Exception:
+        predTo = df_X.shape[0]
     # Data selection
     X_train, X_pred, y_train, y_pred = X[trainFrom:trainTo], X[predFrom:predTo], y[trainFrom:trainTo], y[predFrom:predTo]
     X_train, y_train = X[:,trainFrom:trainTo], y[:,trainFrom:trainTo]
@@ -197,11 +234,17 @@ def preProcess(df, coldate, colID, colsens, colqual, colvalue, rstime, offtime, 
     y_train = np.squeeze(y_train, axis=0)
     return X_train, y_train, df_X, df_y, X_pred
 
-def postProcess(fcst, df_X, sensor, coldate, colID, colsens, colqual, colvalue, start_pred, stop_pred):
+def postProcess(fcst, df_X, sensor, coldate, colID, colsens, colqual, colvalue, start_pred, stop_pred, predtype):
     steps = len(df_X.loc[start_pred:stop_pred].index)
-    # Code int(9) is used to warn it's a predicted value
+    # Code int(100) is used to warn it's a HOLTWINTERS predicted value, int(200) is used to warn it's a MLPDYNAMIC predicted value
     # TODO post-process anomalies, for now only > 0
     fcst[fcst < 0] = 0
-    df_out = pd.DataFrame([[sensor]*steps, fcst, df_X.loc[start_pred:stop_pred].index, [9]*steps],[colsens, colvalue, coldate, colqual]).transpose()
+    try :
+        if predtype == 'HOLTWINTERS':
+            df_out = pd.DataFrame([[sensor]*steps, fcst, df_X.loc[start_pred:stop_pred].index, [100]*steps],[colsens, colvalue, coldate, colqual]).transpose()
+        elif predtype == 'MLPDYNAMIC':
+            df_out = pd.DataFrame([[sensor]*steps, fcst, df_X.loc[start_pred:stop_pred].index, [200]*steps],[colsens, colvalue, coldate, colqual]).transpose()
+    except Exception: # in case codequal is empty
+        df_out = pd.DataFrame([[sensor]*steps, fcst, df_X.loc[start_pred:stop_pred].index],[colsens, colvalue, coldate]).transpose()
     print(df_out)
     return df_out
