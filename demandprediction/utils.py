@@ -150,7 +150,7 @@ def dbParam(cfgpath):
         print('... fail')
     return df
 
-def lastDate(dbflav, dbpath, sensor, tabsensor, coldate, colsens):
+def histDate(dbflav, dbpath, sensor, tabsensor, coldate, colsens):
     ### READ LAST DATE FOR CURRENT SENSOR
     if dbflav == 'sqlite':
         # Read sqlite query results into a pandas DataFrame
@@ -158,10 +158,11 @@ def lastDate(dbflav, dbpath, sensor, tabsensor, coldate, colsens):
     elif dbflav == 'postgreSQL':
         # Read postgreSQL query results into a pandas DataFrame
         con = psycopg2.connect(dbpath)
-    print("SELECT * FROM "+tabsensor+" WHERE "+colsens+"='"+sensor+"' ORDER BY "+coldate+" DESC LIMIT 1", end='')
+    print("SELECT * FROM "+tabsensor+" WHERE "+colsens+"='"+sensor+"' ORDER BY "+coldate+" DESC", end='')
     try:
-        df = pd.read_sql_query("SELECT * FROM "+tabsensor+" WHERE "+colsens+"='"+sensor+"' ORDER BY "+coldate+" DESC LIMIT 1", con)
-        ldate = str(df[coldate][0])
+        df = pd.read_sql_query("SELECT * FROM "+tabsensor+" WHERE "+colsens+"='"+sensor+"' ORDER BY "+coldate+" DESC", con)
+        ldate = str(df[coldate][0]) # Last available historical date
+        fdate = str(df[coldate][len(df)-1]) # First available historical date
         con.commit()
         con.close()
         print('... done')
@@ -169,9 +170,9 @@ def lastDate(dbflav, dbpath, sensor, tabsensor, coldate, colsens):
         con.close()
         print(' '+str(e))
         print('... fail')
-    return ldate
+    return ldate, fdate
 
-def datesMgt(ldate, rstime, offtime, leadtime, histtime, dformat, realtime):
+def datesMgt(ldate, fdate, rstime, offtime, leadtime, histtime, dformat, realtime):
     ### DATES MANAGEMENT
     def _roundto(rst, date, direct):
         # Round to nearest (up : ceil)
@@ -182,7 +183,8 @@ def datesMgt(ldate, rstime, offtime, leadtime, histtime, dformat, realtime):
     else:
         toftime = _roundto(rstime, datetime.strptime(ldate, dformat).replace(microsecond=0, second=0),0)
     lstdate = datetime.strptime(ldate, dformat)
-    start_train = datetime.strftime(_roundto(rstime, lstdate+timedelta(minutes=-histtime),1),dformat)
+    fstdate = datetime.strptime(fdate, dformat)
+    start_train = datetime.strftime(max(_roundto(rstime, lstdate+timedelta(minutes=-histtime),1), _roundto(rstime, fstdate,1)),dformat)
     stop_train = datetime.strftime(_roundto(rstime, datetime.strptime(ldate, dformat),1),dformat)
     start_pred = stop_train
     stop_pred = datetime.strftime(_roundto(rstime, toftime+timedelta(minutes=leadtime+rstime),0),dformat)

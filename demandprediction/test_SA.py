@@ -6,12 +6,10 @@ from demandprediction import utils
 import numpy as np
 
 ## INFOS AND TODO
-# for now only sqlite, with database path manually provided
-# for now, resampling time (rstime) is both computational time step (water demand algo) and output predictions time step
-# offset time (for resampling) can b eprovided manually
+# offset time (for resampling) can be provided manually
 # date format is manually provided
 # two algorithms with some parameters editable : Holt Winters prediction (exponential smoothing) and Multi Layer Perceptron Regressor
-# supposed to work with < 1h timesteps, but not tested intensively
+# can work with < 1h prediction timesteps, but computation performed on 1h timestep
 
 ## READ CONFIGURATION FILE
 cfgpath, dbflav, dbpath, offtime, dformat = utils.iniConfig('config.ini')
@@ -58,11 +56,11 @@ for index, row in df_wd.iterrows():
         delist.append(sensor)
     
     ## Get last historical date
-    ldate = utils.lastDate(dbflav, dbpath, sensor, tabsensor, coldate, colsens)
+    ldate, fdate = histDate(dbflav, dbpath, sensor, tabsensor, coldate, colsens)
 
     ## Compute water demand prediction dates
     realtime = False #True # Real time mode True/False (True means Time Of Forecast is now, False means Time of Forecast is the Last date in the database)
-    start_train, stop_train, start_pred, stop_pred, toftime = utils.datesMgt(ldate, rstime, offtime, leadtime, histtime, dformat, realtime)
+    start_train, stop_train, start_pred, stop_pred, toftime = datesMgt(ldate, fdate, rstime, offtime, leadtime, histtime, dformat, realtime)
     print('>>> Water demand prediction : TOF '+str(toftime))
     
     ## Data read

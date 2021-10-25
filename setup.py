@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="demandprediction",
-    version='0.3.6',
+    version='0.3.7',
     install_requires=[],
     extras_require={
         "dev": [],
