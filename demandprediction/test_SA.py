@@ -56,11 +56,11 @@ for index, row in df_wd.iterrows():
         delist.append(sensor)
     
     ## Get last historical date
-    ldate, fdate = histDate(dbflav, dbpath, sensor, tabsensor, coldate, colsens)
+    ldate, fdate = utils.histDate(dbflav, dbpath, sensor, tabsensor, coldate, colsens)
 
     ## Compute water demand prediction dates
     realtime = False #True # Real time mode True/False (True means Time Of Forecast is now, False means Time of Forecast is the Last date in the database)
-    start_train, stop_train, start_pred, stop_pred, toftime = datesMgt(ldate, fdate, rstime, offtime, leadtime, histtime, dformat, realtime)
+    start_train, stop_train, start_pred, stop_pred, toftime = utils.datesMgt(ldate, fdate, rstime, offtime, leadtime, histtime, dformat, realtime)
     print('>>> Water demand prediction : TOF '+str(toftime))
     
     ## Data read
