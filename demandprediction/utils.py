@@ -234,16 +234,16 @@ def preProcess(df, coldate, colID, colsens, colqual, colvalue, rstime, offtime, 
     y_train = np.squeeze(y_train, axis=0)
     return X_train, y_train, df_X, df_y, X_pred
 
-def postProcess(fcst, df_X, sensor, coldate, colID, colsens, colqual, colvalue, start_pred, stop_pred, predtype):
+def postProcess(fcst, increm, df_X, sensor, coldate, colID, colsens, colqual, colvalue, start_pred, stop_pred, predtype):
     steps = len(df_X.loc[start_pred:stop_pred].index)
     # Code int(100) is used to warn it's a HOLTWINTERS predicted value, int(200) is used to warn it's a MLPDYNAMIC predicted value
     # TODO post-process anomalies, for now only > 0
     fcst[fcst < 0] = 0
     try :
         if predtype == 'HOLTWINTERS':
-            df_out = pd.DataFrame([[sensor]*steps, fcst, df_X.loc[start_pred:stop_pred].index, [100]*steps],[colsens, colvalue, coldate, colqual]).transpose()
+            df_out = pd.DataFrame([[sensor]*steps, fcst, df_X.loc[start_pred:stop_pred].index, [100+increm]*steps],[colsens, colvalue, coldate, colqual]).transpose()
         elif predtype == 'MLPDYNAMIC':
-            df_out = pd.DataFrame([[sensor]*steps, fcst, df_X.loc[start_pred:stop_pred].index, [200]*steps],[colsens, colvalue, coldate, colqual]).transpose()
+            df_out = pd.DataFrame([[sensor]*steps, fcst, df_X.loc[start_pred:stop_pred].index, [200+increm]*steps],[colsens, colvalue, coldate, colqual]).transpose()
     except Exception: # in case codequal is empty
         df_out = pd.DataFrame([[sensor]*steps, fcst, df_X.loc[start_pred:stop_pred].index],[colsens, colvalue, coldate]).transpose()
     print(df_out)

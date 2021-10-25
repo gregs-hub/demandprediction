@@ -61,7 +61,7 @@ for index, row in df_wd.iterrows():
     ldate = utils.lastDate(dbflav, dbpath, sensor, tabsensor, coldate, colsens)
 
     ## Compute water demand prediction dates
-    realtime = True # Real time mode True/False (True means Time Of Forecast is now, False means Time of Forecast is the Last date in the database)
+    realtime = False #True # Real time mode True/False (True means Time Of Forecast is now, False means Time of Forecast is the Last date in the database)
     start_train, stop_train, start_pred, stop_pred, toftime = utils.datesMgt(ldate, rstime, offtime, leadtime, histtime, dformat, realtime)
     print('>>> Water demand prediction : TOF '+str(toftime))
     
@@ -80,7 +80,7 @@ for index, row in df_wd.iterrows():
             # model = HoltWinters('add','add', 7*24, 24)
             model.learn(y_train)
             fcst[:,r] = model.predict()
-        fcst = np.mean(fcst,axis=1)
+        fcstm = np.mean(fcst,axis=1)
     elif row['PREDICTTYPE'] == 'MLPDYNAMIC':
         fcst = np.zeros((X_pred.shape[1],int(runs)))
         for r in range(runs):
@@ -89,13 +89,23 @@ for index, row in df_wd.iterrows():
             # model = demand.MLPDynamic('relu', (64,128,64), 'adam', 'adaptive', 0.01, 100000, 1000, 0.01)
             model.learn(X_train.T,y_train)
             fcst[:,r] = model.predict(X_pred.T)
-        fcst = np.mean(fcst,axis=1)
+        fcstm = np.mean(fcst,axis=1)
     
-    ## Post-process
-    df_out = utils.postProcess(fcst, df_X, sensor, coldate, colID, colsens, colqual, colvalue, start_pred, stop_pred, row['PREDICTTYPE'])
-    
-    ## Write new forecast to sql
-    utils.dbWrite(df_out, dbflav, dbpath, sensor, tabdemand)
+    ## Post-process and write
+    for increm in range(fcst.shape[1]):
+        if fcst.shape[1] > 1:
+            # Multiple members
+            if increm == 0:
+                # Members' average
+                df_out = utils.postProcess(fcstm, increm, df_X, sensor, coldate, colID, colsens, colqual, colvalue, start_pred, stop_pred, row['PREDICTTYPE'])
+            else:
+                df_out = utils.postProcess(fcst[:,increm], increm, df_X, sensor, coldate, colID, colsens, colqual, colvalue, start_pred, stop_pred, row['PREDICTTYPE'])
+        else:
+            # Single member
+            df_out = utils.postProcess(fcst, increm, df_X, sensor, coldate, colID, colsens, colqual, colvalue, start_pred, stop_pred, row['PREDICTTYPE'])
+
+        # Write new forecast to sql
+        utils.dbWrite(df_out, dbflav, dbpath, sensor, tabdemand)
 
     # import pdb; pdb.set_trace() # continue
 
