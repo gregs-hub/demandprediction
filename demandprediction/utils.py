@@ -191,6 +191,8 @@ def datesMgt(ldate, fdate, rstime, offtime, leadtime, histtime, dformat, realtim
     return start_train, stop_train, start_pred, stop_pred, toftime
 
 def preProcess(df, coldate, colID, colsens, colqual, colvalue, rstime, offtime, start_train, stop_train, start_pred, stop_pred):
+    ### TODO (future: add anomaly detection filter)
+    ### TODO (future: data normalization, data scaling)
     # Define coldate as datetime index
     df = df.set_index(pd.DatetimeIndex(df[coldate])).drop(columns=coldate)
     # Drop unused columns : coldID, colsens, colqual
@@ -198,23 +200,30 @@ def preProcess(df, coldate, colID, colsens, colqual, colvalue, rstime, offtime, 
         df.drop(columns=[colID,colsens,colqual], inplace=True)
     except Exception: # in case codequal is empty
         df.drop(columns=[colID,colsens], inplace=True)
-    # Data filtering ### TODO
-    df_mod = df
+    # Data filtering
+    df_mod = df.copy(deep=True)
     df_mod.replace(0,np.nan,inplace=True)
     df_mod[df_mod[colvalue]>df_mod[colvalue].quantile(0.999)] = np.nan
     df_mod[df_mod[colvalue]<df_mod[colvalue].quantile(0.001)] = np.nan
     df_mod.dropna(inplace=True)
-    # Data resampling ### TODO
-    df_rs = df.resample(str(min(60,rstime))+'min').mean() # If timestep is higher than 60 min, we use 60 min for resampling before reindexing to asked rstime
+    # Data resampling
+    df_rs = df_mod.resample(str(min(60,rstime))+'min').mean() # If timestep is higher than 60 min, we use 60 min for resampling before reindexing to asked rstime
     df_rs.index = df_rs.index+to_offset(offtime)
-    df_rs.interpolate(inplace=True)
-    df_rs = df_rs.reindex(pd.date_range(start = start_train, end = stop_pred, freq=str(rstime)+'min'),fill_value=0.0)
-    # TODO Cases where available data don't cover asked historical dates
-    # Methodology using DOY/WD/HR, no data scaling ### TODO
+    # Feature engineering (methodology using DOY/WD/HR)
     df_rs['DOY'] = df_rs.index.dayofyear.astype(float)
     df_rs['WD'] = df_rs.index.dayofweek.astype(float)+1
     df_rs['HR'] = df_rs.index.hour.astype(float)
     # df_rs['MN'] = df_rs.index.minute.astype(float)
+    # Gap filling (fill hourly missing values with WD/HR couples' observed averages during the training period)
+    if rstime <= 60 and df_rs[df_rs[colvalue].isnull()].sum().sum():
+        test = df_rs.groupby([df_rs.WD,df_rs.HR]).mean()
+        test.to_csv(r'C:/Users/grse/Desktop/test.csv')
+        for index, row in df_rs.iterrows():
+            if str(row[colvalue])=='nan':
+                df_rs.at[index,colvalue] = df_rs.groupby([df_rs.WD,df_rs.HR]).get_group((row['WD'], row['HR'])).mean()[colvalue]
+    # Data interpolation (in case still missing values) and reindexing
+    df_rs.interpolate(inplace=True)
+    df_rs = df_rs.reindex(pd.date_range(start = start_train, end = stop_pred, freq=str(rstime)+'min'),fill_value=0.0)
     # Data formatting for water demand algorithms
     df_X = df_rs.drop(colvalue, axis=1)
     df_y = df_rs[colvalue]

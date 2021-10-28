@@ -11,6 +11,10 @@ import numpy as np
 # two algorithms with some parameters editable : Holt Winters prediction (exponential smoothing) and Multi Layer Perceptron Regressor
 # can work with < 1h prediction timesteps, but computation performed on 1h timestep
 
+#### TESTING
+
+####
+
 ## READ CONFIGURATION FILE
 cfgpath, dbflav, dbpath, offtime, dformat = utils.iniConfig('config.ini')
 
@@ -67,7 +71,7 @@ for index, row in df_wd.iterrows():
     df_in = utils.dbRead(dbflav, dbpath, sensor, tabsensor, colID, coldate, colsens)
 
     ## Pre-process
-    X_train, y_train, df_X, df_y, X_pred = utils.preProcess(df_in, coldate, colID, colsens, colqual, colvalue, rstime, offtime, start_train, stop_train, start_pred, stop_pred)
+    X_train, y_train, df_X, df_y, X_pred = preProcess(df_in, coldate, colID, colsens, colqual, colvalue, rstime, offtime, start_train, stop_train, start_pred, stop_pred)
     
     ## Demand computation
     if row['PREDICTTYPE'] == 'HOLTWINTERS':
