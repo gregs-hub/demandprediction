@@ -95,14 +95,14 @@ for index, row in df_wd.iterrows():
         fcstm = np.mean(fcst,axis=1)
     
     ## Post-process and write
-    for increm in range(fcst.shape[1]+1):
+    for increm in range(fcst.shape[1]):
         if fcst.shape[1] > 1:
             # Multiple members
             if increm == 0:
                 # Members' average
                 df_out = utils.postProcess(fcstm, increm, df_X, sensor, coldate, colID, colsens, colqual, colvalue, start_pred, stop_pred, row['PREDICTTYPE'])
             else:
-                df_out = utils.postProcess(fcst[:,increm-1], increm, df_X, sensor, coldate, colID, colsens, colqual, colvalue, start_pred, stop_pred, row['PREDICTTYPE'])
+                df_out = utils.postProcess(fcst[:,increm], increm, df_X, sensor, coldate, colID, colsens, colqual, colvalue, start_pred, stop_pred, row['PREDICTTYPE'])
         else:
             # Single member
             df_out = utils.postProcess(fcst, increm, df_X, sensor, coldate, colID, colsens, colqual, colvalue, start_pred, stop_pred, row['PREDICTTYPE'])

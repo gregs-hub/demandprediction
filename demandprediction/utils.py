@@ -216,8 +216,6 @@ def preProcess(df, coldate, colID, colsens, colqual, colvalue, rstime, offtime, 
     # df_rs['MN'] = df_rs.index.minute.astype(float)
     # Gap filling (fill hourly missing values with WD/HR couples' observed averages during the training period)
     if rstime <= 60 and df_rs[df_rs[colvalue].isnull()].sum().sum() > 0:
-        test = df_rs.groupby([df_rs.WD,df_rs.HR]).mean()
-        test.to_csv(r'C:/Users/grse/Desktop/test.csv')
         for index, row in df_rs.iterrows():
             if str(row[colvalue])=='nan':
                 df_rs.at[index,colvalue] = df_rs.groupby([df_rs.WD,df_rs.HR]).get_group((row['WD'], row['HR'])).mean()[colvalue]
