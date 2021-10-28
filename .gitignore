@@ -10967,3 +10967,5 @@ notebooks/Water_demand_SWDE.ipynb
 notebooks/Water_demand_test.ipynb
 notebooks/.ipynb_checkpoints/Water_demand_SWDE-checkpoint.ipynb
 notebooks/.ipynb_checkpoints/Water_demand_test-checkpoint.ipynb
+demandprediction/test_SA.py
+demandprediction/test.py
