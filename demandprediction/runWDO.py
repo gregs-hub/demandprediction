@@ -81,7 +81,7 @@ for index, row in df_wd.iterrows():
         fcstm = np.mean(fcst,axis=1)
     
     ## Post-process and write
-    for increm in range(fcst.shape[1])+1:
+    for increm in range(fcst.shape[1]+1):
         if fcst.shape[1] > 1:
             # Multiple members
             if increm == 0:
