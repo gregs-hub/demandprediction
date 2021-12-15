@@ -19,7 +19,32 @@ def iniConfig(configFile):
     offtime = iniconfig['DEMAND']['resamplingOffset']
     dformat = iniconfig['DEMAND']['dateFormat']
     dformat = dformat.replace('yyyy','%Y').replace('MM','%m').replace('dd','%d').replace('hh','%H').replace('mm','%M').replace('ss','%S')
-    return cfgpath, dbflav, dbpath, offtime, dformat
+    tsettings = iniconfig['DEMAND']['settingsTable']
+    tdemand = iniconfig['DEMAND']['demandTable']
+    namesect = iniconfig['DEMAND']['sectionName']
+    nameid = iniconfig['DEMAND']['idFldName']
+    namedate = iniconfig['DEMAND']['dateFldName']
+    nameval = iniconfig['DEMAND']['valFldName']
+    namequal = iniconfig['DEMAND']['qualFldName']
+    namekey = iniconfig['DEMAND']['keyName']
+    iddem = iniconfig['DEMAND']['demId']
+    tsensor = iniconfig['DEMAND']['sensorTable']
+    idsensor = iniconfig['DEMAND']['sensorId']
+    toutput = iniconfig['DEMAND']['outputTable']
+    steppred = iniconfig['DEMAND']['predStep']
+    durpred = iniconfig['DEMAND']['predDur']
+    durhist = iniconfig['DEMAND']['histDur']
+    typpred = iniconfig['DEMAND']['predType']
+    nbruns = iniconfig['DEMAND']['runsNb']
+    nparam1 = iniconfig['DEMAND']['param1']
+    nparam2 = iniconfig['DEMAND']['param2']
+    nparam3 = iniconfig['DEMAND']['param3']
+    nparam4 = iniconfig['DEMAND']['param4']
+    nparam5 = iniconfig['DEMAND']['param5']
+    nparam6 = iniconfig['DEMAND']['param6']
+    nparam7 = iniconfig['DEMAND']['param7']
+    nparam8 = iniconfig['DEMAND']['param8']
+    return cfgpath, dbflav, dbpath, offtime, dformat, tsettings, tdemand, namesect, nameid, namedate, nameval, namequal, namekey, iddem, tsensor, idsensor, toutput, steppred, durpred, durhist, typpred, nbruns, nparam1, nparam2, nparam3, nparam4, nparam5, nparam6, nparam7, nparam8
 
 def dbRead(dbflav, dbpath, sensor, tabsensor, colID, coldate, colsens):
     ### READ
@@ -65,8 +90,14 @@ def dbWrite(df, dbflav, dbpath, sensor, tabdemand):
         except Exception:
             pass
         try:
-            # Create a list of tupples from the dataframe values
-            tuples = [tuple(x) for x in df.to_numpy()]
+            # Create a list of tuples from the dataframe values
+            tuples = []
+            for x in df.to_numpy():
+                try:
+                    x[1] = x[1][0]
+                except Exception:
+                    pass
+                tuples.append(tuple(x))
             # Comma-separated dataframe columns
             cols = ','.join(list(df.columns))
             # SQL quert to execute
@@ -77,6 +108,8 @@ def dbWrite(df, dbflav, dbpath, sensor, tabdemand):
                 con.commit()
             except Exception as e:
                 con.rollback()
+                print(' '+str(e))
+                print('... fail')
             con.close()
         except Exception as e:
             con.close()
@@ -114,17 +147,17 @@ def dbDelete(dbflav, dbpath, sensor, tabdemand, colsens):
             print(' '+str(e))
             print('... fail')
 
-def dbConfig(cfgpath):
+def dbConfig(cfgpath, tsettings, namesect, nameid, namedate, nameval, namequal, namekey):
     ### GET CONFIG FROM DATABASE, ALWAYS IN SQLITE
     # Read sqlite configuration
-    lkey = ['INIDFLDNAME','INDATETIMEFLDNAME','INVALUEFLDNAME','INQUALITYFLDNAME','AUTOKEYID']
+    lkey = [nameid,namedate,nameval,namequal,namekey]
     dkey = {}
     for l in lkey:
         con = sqlite3.connect(cfgpath)
-        print("SELECT KEYVALUE FROM WDO_SETTINGS WHERE KEYNAME == "+l, end='')
+        print("SELECT keyvalue FROM "+tsettings+" WHERE keyname == "+l+" AND section == "+namesect, end='')
         try:
-            tag = pd.read_sql_query("SELECT KEYVALUE FROM WDO_SETTINGS WHERE KEYNAME = '"+l+"'", con)
-            dkey[l] = tag.KEYVALUE[0]
+            tag = pd.read_sql_query("SELECT keyvalue FROM "+tsettings+" WHERE keyname = '"+l+"' AND section = '"+namesect+"'", con)
+            dkey[l] = tag.keyvalue[0]
             con.commit()
             con.close()
             print('... done')
@@ -134,13 +167,13 @@ def dbConfig(cfgpath):
             print('... fail')
     return dkey
 
-def dbParam(cfgpath):
+def dbParam(cfgpath, tdemand):
     ### GET WATER DEMAND PARAMETERS FROM DATABASE, ALWAYS IN SQLITE
     # Read sqlite demand parameters
     con = sqlite3.connect(cfgpath)
-    print("SELECT * FROM WDO_DEMANDPREDICTION ORDER BY ID ASC", end='')
+    print("SELECT * FROM "+tdemand+" ORDER BY ID ASC", end='')
     try:
-        df = pd.read_sql_query("SELECT * FROM WDO_DEMANDPREDICTION ORDER BY ID ASC", con)
+        df = pd.read_sql_query("SELECT * FROM "+tdemand+" ORDER BY ID ASC", con)
         con.commit()
         con.close()
         print('... done')
@@ -209,11 +242,6 @@ def preProcess(df, coldate, colID, colsens, colqual, colvalue, rstime, offtime, 
     # Data resampling
     df_rs = df_mod.resample(str(min(60,rstime))+'min').mean() # If timestep is higher than 60 min, we use 60 min for resampling before reindexing to asked rstime
     df_rs.index = df_rs.index+to_offset(offtime)
-    # Feature engineering (methodology using DOY/WD/HR)
-    df_rs['DOY'] = df_rs.index.dayofyear.astype(float)
-    df_rs['WD'] = df_rs.index.dayofweek.astype(float)+1
-    df_rs['HR'] = df_rs.index.hour.astype(float)
-    # df_rs['MN'] = df_rs.index.minute.astype(float)
     # Gap filling (fill hourly missing values with WD/HR couples' observed averages during the training period)
     if rstime <= 60 and df_rs[df_rs[colvalue].isnull()].sum().sum() > 0:
         for index, row in df_rs.iterrows():
@@ -222,6 +250,10 @@ def preProcess(df, coldate, colID, colsens, colqual, colvalue, rstime, offtime, 
     # Data interpolation (in case still missing values) and reindexing
     df_rs.interpolate(inplace=True)
     df_rs = df_rs.reindex(pd.date_range(start = start_train, end = stop_pred, freq=str(rstime)+'min'),fill_value=0.0)
+    # Feature engineering (methodology using DOY/WD/HR)
+    df_rs['DOY'] = df_rs.index.dayofyear.astype(float)
+    df_rs['WD'] = df_rs.index.dayofweek.astype(float)+1
+    df_rs['HR'] = df_rs.index.hour.astype(float)
     # Data formatting for water demand algorithms
     df_X = df_rs.drop(colvalue, axis=1)
     df_y = df_rs[colvalue]

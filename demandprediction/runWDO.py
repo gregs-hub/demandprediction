@@ -3,41 +3,44 @@ from demandprediction import utils
 import numpy as np
 
 ## READ CONFIGURATION FILE
-cfgpath, dbflav, dbpath, offtime, dformat = utils.iniConfig('config.ini')
+[cfgpath, dbflav, dbpath, offtime, dformat, tsettings, tdemand,
+ namesect, nameid, namedate, nameval, namequal, namekey, iddem, tsensor,
+ idsensor, toutput, steppred, durpred, durhist, typpred, nbruns,
+ nparam1, nparam2, nparam3, nparam4, nparam5, nparam6, nparam7, nparam8] = utils.iniConfig('config.ini')
 
 ## DB CONFIGURATION NAMES
-dbconfig = utils.dbConfig(cfgpath)
-colsens = dbconfig['INIDFLDNAME']
-coldate = dbconfig['INDATETIMEFLDNAME']
-colvalue = dbconfig['INVALUEFLDNAME']
-colqual = dbconfig['INQUALITYFLDNAME']
-colID = dbconfig['AUTOKEYID']
+dbconfig = utils.dbConfig(cfgpath, tsettings, namesect, nameid, namedate, nameval, namequal, namekey)
+colsens = dbconfig[nameid]
+coldate = dbconfig[namedate]
+colvalue = dbconfig[nameval]
+colqual = dbconfig[namequal]
+colID = dbconfig[namekey]
 
 ## DB DEMAND PARAMETERS
-df_wd = utils.dbParam(cfgpath)
+df_wd = utils.dbParam(cfgpath, tdemand)
 
 ## LOOP
 delist = []
 for index, row in df_wd.iterrows():
     ## Sensor currently forecasted
-    print(row['ID'], row ['SENSORTABLE'], row['SENSORID'], row ['PREDICTTABLE'], row['PREDICTSTEP'], row['PREDICTDURATION'], row['HISTORYDURATION'], row['PREDICTTYPE'])
+    print(row[iddem], row [tsensor], row[idsensor], row [toutput], row[toutput], row[durpred], row[durhist], row[typpred])
 
     ## Get parameters
-    tabsensor = row['SENSORTABLE']
-    sensor = row['SENSORID']
-    tabdemand = row['PREDICTTABLE']
-    rstime = row['PREDICTSTEP']
-    leadtime = row['PREDICTDURATION']
-    histtime = row['HISTORYDURATION']
-    runs = row['RUNS']
-    param1 = row['PARAM1']
-    param2 = row['PARAM2']
-    param3 = row['PARAM3']
-    param4 = row['PARAM4']
-    param5 = row['PARAM5']
-    param6 = row['PARAM6']
-    param7 = row['PARAM7']
-    param8 = row['PARAM8']
+    tabsensor = row[tsensor]
+    sensor = row[idsensor]
+    tabdemand = row[toutput]
+    rstime = row[steppred]
+    leadtime = row[durpred]
+    histtime = row[durhist]
+    runs = row[nbruns]
+    param1 = row[nparam1]
+    param2 = row[nparam2]
+    param3 = row[nparam3]
+    param4 = row[nparam4]
+    param5 = row[nparam5]
+    param6 = row[nparam6]
+    param7 = row[nparam7]
+    param8 = row[nparam8]
 
     ## Delete previous forecast from sql
     if sensor in delist:
@@ -61,7 +64,7 @@ for index, row in df_wd.iterrows():
     X_train, y_train, df_X, df_y, X_pred = utils.preProcess(df_in, coldate, colID, colsens, colqual, colvalue, rstime, offtime, start_train, stop_train, start_pred, stop_pred)
     
     ## Demand computation
-    if row['PREDICTTYPE'] == 'HOLTWINTERS':
+    if row[typpred] == 'HOLTWINTERS':
         fcst = np.zeros((X_pred.shape[1],int(runs)))
         for r in range(runs):
             print('Run '+str(r))
@@ -70,7 +73,7 @@ for index, row in df_wd.iterrows():
             model.learn(y_train)
             fcst[:,r] = model.predict()
         fcstm = np.mean(fcst,axis=1)
-    elif row['PREDICTTYPE'] == 'MLPDYNAMIC':
+    elif row[typpred] == 'MLPDYNAMIC':
         fcst = np.zeros((X_pred.shape[1],int(runs)))
         for r in range(runs):
             print('Run '+str(r))
@@ -86,12 +89,12 @@ for index, row in df_wd.iterrows():
             # Multiple members
             if increm == 0:
                 # Members' average
-                df_out = utils.postProcess(fcstm, increm, df_X, sensor, coldate, colID, colsens, colqual, colvalue, start_pred, stop_pred, row['PREDICTTYPE'])
+                df_out = utils.postProcess(fcstm, increm, df_X, sensor, coldate, colID, colsens, colqual, colvalue, start_pred, stop_pred, row[typpred])
             else:
-                df_out = utils.postProcess(fcst[:,increm-1], increm, df_X, sensor, coldate, colID, colsens, colqual, colvalue, start_pred, stop_pred, row['PREDICTTYPE'])
+                df_out = utils.postProcess(fcst[:,increm-1], increm, df_X, sensor, coldate, colID, colsens, colqual, colvalue, start_pred, stop_pred, row[typpred])
         else:
             # Single member
-            df_out = utils.postProcess(fcst, increm, df_X, sensor, coldate, colID, colsens, colqual, colvalue, start_pred, stop_pred, row['PREDICTTYPE'])
+            df_out = utils.postProcess(fcst, increm, df_X, sensor, coldate, colID, colsens, colqual, colvalue, start_pred, stop_pred, row[typpred])
 
         # Write new forecast to sql
         utils.dbWrite(df_out, dbflav, dbpath, sensor, tabdemand)

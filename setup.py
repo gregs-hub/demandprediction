@@ -5,14 +5,14 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="demandprediction",
-    version='0.3.12',
+    version='0.3.13',
     install_requires=[],
     extras_require={
         "dev": [],
         "test": [],
     },
     author="Gregory Seiller",
-    author_email="grse@dhigroup.com",
+    author_email="gseiller@hotmail.com",
     description="Water Demand Prediction",
     license="MIT",
     long_description=long_description,
