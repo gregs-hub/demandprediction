@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="demandprediction",
-    version='0.3.13',
+    version='0.3.14',
     install_requires=[],
     extras_require={
         "dev": [],
@@ -17,7 +17,7 @@ setuptools.setup(
     license="MIT",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/DHIgrse/demandprediction",
+    url="https://github.com/gregs-hub/demandprediction",
     packages=setuptools.find_packages(),
     include_package_data=True,
 )
