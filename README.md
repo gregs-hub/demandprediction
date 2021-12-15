@@ -29,4 +29,4 @@ Simple and light algorithm better suited when historical data are available (at 
 - Artificial Neural Network (Multi Layer Perceptron) \
 More advanced algorithm with a large number of parameters (few are open in this version). Uses sklearn.neural_network (MLPRegressor)
 
-<!-- pip install git+https://github.com/DHIgrse/demandprediction.git -->
+<!-- pip install git+https://github.com/gregs-hub/demandprediction.git -->

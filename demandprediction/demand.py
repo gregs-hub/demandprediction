@@ -59,4 +59,3 @@ class MLPDynamic:
         # self.validate(data)
         predY = self.model.predict(predX)
         return predY
-
