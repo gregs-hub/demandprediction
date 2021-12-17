@@ -23,7 +23,7 @@ df_wd = utils.dbParam(cfgpath, tdemand)
 delist = []
 for index, row in df_wd.iterrows():
     ## Sensor currently forecasted
-    print(row[iddem], row [tsensor], row[idsensor], row [toutput], row[toutput], row[durpred], row[durhist], row[typpred])
+    print(row[iddem], row [tsensor], row[idsensor], row [toutput], row[steppred], row[durpred], row[durhist], row[typpred])
 
     ## Get parameters
     tabsensor = row[tsensor]

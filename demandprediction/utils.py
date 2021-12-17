@@ -218,7 +218,7 @@ def datesMgt(ldate, fdate, rstime, offtime, leadtime, histtime, dformat, realtim
     lstdate = datetime.strptime(ldate, dformat)
     fstdate = datetime.strptime(fdate, dformat)
     start_train = datetime.strftime(max(_roundto(rstime, lstdate+timedelta(minutes=-histtime),1), _roundto(rstime, fstdate,1)),dformat)
-    stop_train = datetime.strftime(_roundto(rstime, datetime.strptime(ldate, dformat),1),dformat)
+    stop_train = datetime.strftime(_roundto(rstime, datetime.strptime(ldate, dformat),0),dformat)
     start_pred = stop_train
     stop_pred = datetime.strftime(_roundto(rstime, toftime+timedelta(minutes=leadtime+rstime),0),dformat)
     return start_train, stop_train, start_pred, stop_pred, toftime
@@ -261,13 +261,10 @@ def preProcess(df, coldate, colID, colsens, colqual, colvalue, rstime, offtime, 
     y = df_y.values
     y = y.reshape(1,len(y))
     # Dates management
-    trainFrom = np.where(df_X.index == start_train)[0][0]
-    trainTo = np.where(df_X.index == stop_train)[0][0]#+1
-    predFrom = np.where(df_X.index == start_pred)[0][0]
-    try:
-        predTo = np.where(df_X.index == stop_pred)[0][0]+3
-    except Exception:
-        predTo = df_X.shape[0]
+    trainFrom = df_X.index.get_loc(pd.to_datetime(start_train), method='pad')
+    trainTo = df_X.index.get_loc(pd.to_datetime(stop_train), method='pad')
+    predFrom = df_X.index.get_loc(pd.to_datetime(start_pred), method='pad')
+    predTo = df_X.index.get_loc(pd.to_datetime(stop_pred), method='backfill')+1
     # Data selection
     X_train, X_pred, y_train, y_pred = X[trainFrom:trainTo], X[predFrom:predTo], y[trainFrom:trainTo], y[predFrom:predTo]
     X_train, y_train = X[:,trainFrom:trainTo], y[:,trainFrom:trainTo]
