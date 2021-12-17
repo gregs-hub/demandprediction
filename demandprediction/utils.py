@@ -210,7 +210,7 @@ def datesMgt(ldate, fdate, rstime, offtime, leadtime, histtime, dformat, realtim
     def _roundto(rst, date, direct):
         # Round to nearest (up : ceil)
         new_minute = (date.minute // rst + (direct)) * rst # direct = direction => floor is 0, ceil is 1
-        return date + timedelta(minutes=new_minute - date.minute, seconds=-date.second, microseconds=-date.microsecond)
+        return date + timedelta(minutes=new_minute - date.minute + int(offtime.split('min')[0]), seconds=-date.second, microseconds=-date.microsecond)
     if realtime:
         toftime = _roundto(rstime, datetime.now().replace(microsecond=0, second=0),0)
     else:
