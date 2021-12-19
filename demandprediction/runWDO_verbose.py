@@ -1,12 +1,20 @@
 from demandprediction import demand
 from demandprediction import utils
 import numpy as np
+from datetime import datetime
+import sys
+
+## VERBOSE
+orig_stdout = sys.stdout
+f = open(datetime.now().strftime("%Y%m%d%H%M%S")+'.log', 'w')
+sys.stdout = f
+print('log '+str(datetime.now()))
 
 ## READ CONFIGURATION FILE
 [cfgpath, dbflav, dbpath, offtime, dformat, tsettings, tdemand,
- namesect, nameid, namedate, nameval, namequal, namekey, iddem, tsensor,
- idsensor, toutput, steppred, durpred, durhist, typpred, nbruns,
- nparam1, nparam2, nparam3, nparam4, nparam5, nparam6, nparam7, nparam8] = utils.iniConfig('config.ini')
+namesect, nameid, namedate, nameval, namequal, namekey, iddem, tsensor,
+idsensor, toutput, steppred, durpred, durhist, typpred, nbruns,
+nparam1, nparam2, nparam3, nparam4, nparam5, nparam6, nparam7, nparam8] = utils.iniConfig('config.ini')
 
 ## DB CONFIGURATION NAMES
 dbconfig = utils.dbConfig(cfgpath, tsettings, namesect, nameid, namedate, nameval, namequal, namekey)
@@ -18,6 +26,8 @@ colID = dbconfig[namekey]
 
 ## DB DEMAND PARAMETERS
 df_wd = utils.dbParam(cfgpath, tdemand)
+print('*** df_wd ***')
+print(df_wd)
 
 ## LOOP
 delist = []
@@ -51,17 +61,25 @@ for index, row in df_wd.iterrows():
     
     ## Get last historical date
     ldate, fdate = utils.histDate(dbflav, dbpath, sensor, tabsensor, coldate, colsens)
+    print('*** ldate, fdate ***')
+    print(ldate, fdate)
 
     ## Compute water demand prediction dates
     realtime = True # Real time mode True/False (True means Time Of Forecast is now, False means Time of Forecast is the Last date in the database)
     start_train, stop_train, start_pred, stop_pred, toftime = utils.datesMgt(ldate, fdate, rstime, offtime, leadtime, histtime, dformat, realtime)
     print('>>> Water demand prediction : TOF '+str(toftime))
+    print('*** start_train, stop_train, start_pred, stop_pred, toftime ***')
+    print(start_train, stop_train, start_pred, stop_pred, toftime)
     
     ## Data read
     df_in = utils.dbRead(dbflav, dbpath, sensor, tabsensor, colID, coldate, colsens)
+    print('*** df_in ***')
+    print(df_in)
 
     ## Pre-process
     X_train, y_train, df_X, df_y, X_pred = utils.preProcess(df_in, coldate, colID, colsens, colqual, colvalue, rstime, offtime, start_train, stop_train, start_pred, stop_pred)
+    print('*** X_train, y_train, df_X, df_y, X_pred ***')
+    print(X_train, y_train, df_X, df_y, X_pred)
     
     ## Demand computation
     if row[typpred] == 'HOLTWINTERS':
@@ -82,6 +100,8 @@ for index, row in df_wd.iterrows():
             model.learn(X_train.T,y_train)
             fcst[:,r] = model.predict(X_pred.T)
         fcstm = np.mean(fcst,axis=1)
+    print('*** fcst ***')
+    print(fcst)
     
     ## Post-process and write
     for increm in range(fcst.shape[1]+1):
@@ -98,5 +118,9 @@ for index, row in df_wd.iterrows():
 
         # Write new forecast to sql
         utils.dbWrite(df_out, dbflav, dbpath, sensor, tabdemand)
-    
+        print('*** df_out ***')
+        print(df_out)
     print('\n')
+
+sys.stdout = orig_stdout
+f.close()

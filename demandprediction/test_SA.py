@@ -111,6 +111,8 @@ for index, row in df_wd.iterrows():
 
         # Write new forecast to sql
         utils.dbWrite(df_out, dbflav, dbpath, sensor, tabdemand)
+    
+    print('\n')
 
     # import pdb; pdb.set_trace() # continue
 
