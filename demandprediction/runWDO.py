@@ -58,7 +58,7 @@ for index, row in df_wd.iterrows():
     print('>>> Water demand prediction : TOF '+str(toftime))
     
     ## Data read
-    df_in = utils.dbRead(dbflav, dbpath, sensor, tabsensor, colID, coldate, colsens)
+    df_in = utils.dbRead(dbflav, dbpath, sensor, tabsensor, colID, coldate, colsens, colvalue, colqual)
 
     ## Pre-process
     X_train, y_train, df_X, df_y, X_pred = utils.preProcess(df_in, coldate, colID, colsens, colqual, colvalue, rstime, offtime, start_train, stop_train, start_pred, stop_pred)

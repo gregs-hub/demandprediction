@@ -72,7 +72,7 @@ for index, row in df_wd.iterrows():
     print(start_train, stop_train, start_pred, stop_pred, toftime)
     
     ## Data read
-    df_in = utils.dbRead(dbflav, dbpath, sensor, tabsensor, colID, coldate, colsens)
+    df_in = utils.dbRead(dbflav, dbpath, sensor, tabsensor, colID, coldate, colsens, colvalue, colqual)
     print('*** df_in ***')
     print(df_in)
 
