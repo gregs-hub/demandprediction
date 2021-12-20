@@ -46,7 +46,7 @@ def iniConfig(configFile):
     nparam8 = iniconfig['DEMAND']['param8']
     return cfgpath, dbflav, dbpath, offtime, dformat, tsettings, tdemand, namesect, nameid, namedate, nameval, namequal, namekey, iddem, tsensor, idsensor, toutput, steppred, durpred, durhist, typpred, nbruns, nparam1, nparam2, nparam3, nparam4, nparam5, nparam6, nparam7, nparam8
 
-def dbRead(dbflav, dbpath, sensor, tabsensor, colID, coldate, colsens):
+def dbRead(dbflav, dbpath, sensor, tabsensor, colID, coldate, colsens, colvalue, colqual):
     ### READ
     if dbflav == 'sqlite':
         # Read sqlite query results into a pandas DataFrame
@@ -54,9 +54,9 @@ def dbRead(dbflav, dbpath, sensor, tabsensor, colID, coldate, colsens):
     elif dbflav == 'postgreSQL':
         # Read postgreSQL query results into a pandas DataFrame
         con = psycopg2.connect(dbpath)
-    print("SELECT * FROM "+tabsensor+" WHERE "+colsens+"='"+sensor+"' ORDER BY "+coldate+" ASC, "+colID+" ASC", end='')
+    print("SELECT "+",".join((colID,coldate,colsens,colvalue,colqual))+" FROM "+tabsensor+" WHERE "+colsens+"='"+sensor+"' ORDER BY "+coldate+" ASC, "+colID+" ASC", end='')
     try:
-        df = pd.read_sql_query("SELECT * FROM "+tabsensor+" WHERE "+colsens+"='"+sensor+"' ORDER BY "+coldate+" ASC, "+colID+" ASC", con)
+        df = pd.read_sql_query("SELECT "+",".join((colID,coldate,colsens,colvalue,colqual))+" FROM "+tabsensor+" WHERE "+colsens+"='"+sensor+"' ORDER BY "+coldate+" ASC, "+colID+" ASC", con)
         con.close()
         print('... done')
     except Exception as e:
